@@ -330,9 +330,13 @@ class EngineUpdateService {
   /// 默认 httpGet：要求 GitHub REST 携带 User-Agent 否则 403；非 200 抛错。
   /// 每个阶段（连接/响应/读取体）各有 [checkTimeout] 超时，加上
   /// HttpClient 级别的 connectionTimeout 防止 TCP 握手挂死。
+  /// 显式配置 findProxyFromEnvironment 以支持系统代理（Clash/V2Ray 等），
+  /// Dart HttpClient 默认不读取 http_proxy / https_proxy 环境变量，
+  /// 在需要代理才能访问外网的国内环境会导致直连挂死直到超时。
   Future<String> _defaultHttpGet(String url) async {
     final client = HttpClient()
-      ..connectionTimeout = checkTimeout;
+      ..connectionTimeout = checkTimeout
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       final req = await client.getUrl(Uri.parse(url)).timeout(checkTimeout);
       req.headers
@@ -351,7 +355,8 @@ class EngineUpdateService {
   /// 默认 downloader：下载 GitHub `releases/latest/download/yt-dlp.exe` 到 destPath。
   Future<void> _defaultDownload(String destPath) async {
     final client = HttpClient()
-      ..connectionTimeout = checkTimeout;
+      ..connectionTimeout = checkTimeout
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       final req = await client
           .getUrl(Uri.parse(
@@ -389,7 +394,8 @@ class EngineUpdateService {
   /// 默认 ffmpeg 下载：下载 gyan.dev essentials zip 到 zipPath。
   Future<void> _defaultFfmpegDownload(String zipPath) async {
     final client = HttpClient()
-      ..connectionTimeout = checkTimeout;
+      ..connectionTimeout = checkTimeout
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       final req = await client
           .getUrl(Uri.parse(
