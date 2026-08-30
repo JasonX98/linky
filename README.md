@@ -10,6 +10,14 @@
 
 ---
 
+## 界面预览
+
+| 下载 | 历史 | 设置 |
+| --- | --- | --- |
+| ![下载](screenshots/download.png) | ![历史](screenshots/history.png) | ![设置](screenshots/settings.png) |
+
+---
+
 ## 核心功能
 
 应用分为三个模块，左侧常驻导航在 **下载 / 历史 / 设置** 之间切换。
