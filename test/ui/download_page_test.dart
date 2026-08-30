@@ -160,6 +160,33 @@ void main() {
     expect(find.byKey(const Key('open_t0')), findsOneWidget);
   });
 
+  testWidgets('narrow window stacks the preview card without overflow',
+      (tester) async {
+    // 预览卡按 LayoutBuilder 的 maxWidth>=560 分宽/窄两版：宽版缩略图与信息
+    // 左右并排，窄版上下堆叠。默认视口 1400 只覆盖宽版，这里压窄覆盖窄版。
+    // 560 是实测下限：再往下（520）fluent TextBox 内部结构开始溢出，
+    // 那部分是框架自带控件，应用层无法干预 —— 真机应通过最小窗口尺寸兜底。
+    final view =
+        TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
+    for (final width in <double>[560, 700]) {
+      view
+        ..physicalSize = Size(width, 900)
+        ..devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(wrap(FakeUiService()));
+      await tester.enterText(
+          find.byKey(const Key('url_field')), 'https://example.com/v');
+      await tester.tap(find.byKey(const Key('analyze_button')));
+      // 窄版若有 RenderFlex 溢出，pumpAndSettle 会把渲染异常升级为测试失败
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('测试视频'), findsWidgets,
+          reason: 'width=$width 预览卡应完整渲染');
+      expect(find.byKey(const Key('enqueue_button')), findsOneWidget,
+          reason: 'width=$width 应保留入队按钮');
+    }
+  });
+
   testWidgets('playlist url shows selection controls', (tester) async {
     await tester.pumpWidget(wrap(FakeUiService(playlist: true)));
     await tester.enterText(

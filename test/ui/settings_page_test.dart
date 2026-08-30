@@ -133,6 +133,33 @@ void main() {
     expect(find.byKey(const Key('browse_button')), findsNothing);
   });
 
+  testWidgets('narrow window keeps every section within bounds', (tester) async {
+    // 设置页测试直接挂 SettingsPage（无侧边栏），这里模拟真实窗口扣掉 232px
+    // 侧边栏后的可用宽度（约 600 → 相当于 830px 窗口）。
+    final view =
+        TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
+    view
+      ..physicalSize = const Size(600, 900)
+      ..devicePixelRatio = 1.0;
+    addTearDown(() {
+      view
+        ..resetPhysicalSize()
+        ..resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+
+    // 三个分区逐一走查：路径行（路径框 + 按钮是 Row）、步进器、关于卡片
+    // 任一处 RenderFlex 溢出都会被 pumpAndSettle 升级为测试失败
+    await openSection(tester, 'section_general_tab');
+    await openSection(tester, 'section_download_tab');
+    expect(find.byKey(const Key('browse_button')), findsOneWidget);
+    expect(find.byKey(const Key('concurrency_stepper')), findsOneWidget);
+    await openSection(tester, 'section_about_tab');
+    expect(find.byKey(const Key('check_update_button')), findsOneWidget);
+  });
+
   testWidgets('browse picks directory, updates text and persists', (tester) async {
     picker = () async => r'D:\X';
     await tester.pumpWidget(host());

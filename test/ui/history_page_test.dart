@@ -215,6 +215,31 @@ void main() {
     expect(find.byKey(const Key('history_row_2')), findsOneWidget);
   });
 
+  testWidgets('narrow window drops optional columns instead of overflowing',
+      (tester) async {
+    // 窗口未设最小尺寸，用户可缩到很窄；表格列宽必须分档收缩而不是溢出。
+    // 本测试直接挂 HistoryPage（无侧边栏），520 相当于约 750px 窗口的可用宽度。
+    for (final width in <double>[420, 520, 700, 1000]) {
+      final view =
+          TestWidgetsFlutterBinding.instance.platformDispatcher.views.first;
+      view
+        ..physicalSize = Size(width, 800)
+        ..devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(wrap([completed]));
+      // 任一档位若 RenderFlex 溢出，pumpAndSettle 会把渲染异常升级为失败
+      await tester.pumpAndSettle();
+
+      // 文件名 / 状态 / 操作三列在任何宽度下都必须保留
+      expect(find.byKey(const Key('history_row_1')), findsOneWidget,
+          reason: 'width=$width 应渲染历史行');
+      expect(find.text('已完成'), findsWidgets,
+          reason: 'width=$width 应保留状态列');
+      expect(find.byKey(const Key('delete_1')), findsOneWidget,
+          reason: 'width=$width 应保留操作列');
+    }
+  });
+
   testWidgets('tap delete_<id> removes the row', (tester) async {
     await tester.pumpWidget(wrap([completed]));
     await tester.pumpAndSettle();
