@@ -62,6 +62,12 @@ class AppSize {
   static const double contentMax = 1120;
   static const double settingsNav = 180;
   static const double settingsBodyMax = 700;
+
+  /// 设置项一行放不下"标题+控件"时的断点：低于此值改为上下堆叠
+  static const double settingsRowBreakpoint = 420;
+
+  /// 链接输入行放不下"输入框 + 130px 主按钮"时的断点：低于此值按钮换行到下方
+  static const double urlRowBreakpoint = 420;
   static const double pagePadding = 40;
   static const double pagePaddingV = 36;
   static const double navItem = 44;

@@ -358,15 +358,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         size: 28, color: AppColors.onAccent),
                   ),
                   const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${AppMeta.name} · ${AppMeta.nameZh}',
-                          style: AppText.section()),
-                      const SizedBox(height: 4),
-                      Text(s.aboutVersionLine(AppMeta.version),
-                          style: AppText.meta()),
-                    ],
+                  // Expanded：窄栏时让文字列收缩，否则 Row 会 RenderFlex 溢出
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${AppMeta.name} · ${AppMeta.nameZh}',
+                            style: AppText.section()),
+                        const SizedBox(height: 4),
+                        Text(s.aboutVersionLine(AppMeta.version),
+                            style: AppText.meta()),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -447,30 +450,44 @@ class _SettingRow extends StatelessWidget {
   final String subtitle;
   final Widget child;
 
+  /// 窄栏（< [AppSize.settingsRowBreakpoint]）时改为上下堆叠，避免右侧控件
+  /// 与标题挤在同一行导致 RenderFlex 溢出。
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.borderSoft)),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: AppText.label(
-                      color: AppColors.textPrimary,
-                      weight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: AppText.meta()),
-                ],
-              ),
-            ),
-            const SizedBox(width: 24),
-            child,
-          ],
-        ),
+        child: LayoutBuilder(builder: (context, c) {
+          if (c.maxWidth < AppSize.settingsRowBreakpoint) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _labels(),
+                const SizedBox(height: 12),
+                child,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: _labels()),
+              const SizedBox(width: 24),
+              child,
+            ],
+          );
+        }),
+      );
+
+  Widget _labels() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: AppText.label(
+                  color: AppColors.textPrimary, weight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: AppText.meta()),
+        ],
       );
 }
 

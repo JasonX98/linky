@@ -63,12 +63,20 @@ class AppHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // 头部是固定 76px：标题/副标题必须单行截断，否则窄窗口下文字换行
+          // 会把 Column 撑高并纵向溢出
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppText.title()),
+                Text(
+                  title,
+                  style: AppText.title(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 SubtitleLine(text: subtitle, top: 3),
               ],
             ),
@@ -104,7 +112,15 @@ class SectionHeader extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(title, style: AppText.section()),
+                    // Flexible + 单行截断：窄栏时标题让位给右侧操作，避免横向溢出
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: AppText.section(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     if (count case final c?) ...[
                       const SizedBox(width: 8),
                       _CountBadge(text: c),
@@ -115,7 +131,10 @@ class SectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          ?trailing,
+          if (trailing case final t?) ...[
+            const SizedBox(width: 16),
+            t,
+          ],
         ],
       );
 }
@@ -142,7 +161,12 @@ class SubtitleLine extends StatelessWidget {
     if (t == null) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.only(top: top),
-      child: Text(t, style: meta ? AppText.meta() : AppText.label()),
+      child: Text(
+        t,
+        style: meta ? AppText.meta() : AppText.label(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

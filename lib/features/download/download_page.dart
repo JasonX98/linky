@@ -229,66 +229,75 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
           const SizedBox(height: 24),
           Text(s.videoUrl, style: AppText.label()),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: AppSize.input,
-                  child: TextBox(
-                    key: const Key('url_field'),
-                    controller: _urlCtrl,
-                    placeholder: s.urlPlaceholder,
-                    placeholderStyle: AppText.label(color: AppColors.textDim),
-                    style: AppText.body(color: AppColors.textPrimary),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    highlightColor: Colors.transparent,
-                    unfocusedColor: Colors.transparent,
-                    decoration:
-                        WidgetStateProperty.resolveWith<BoxDecoration>((states) {
-                      final focused = states.contains(WidgetState.focused);
-                      return BoxDecoration(
-                        color: AppColors.bgBase,
-                        borderRadius: BorderRadius.circular(AppRadius.field),
-                        border: Border.all(
-                          color: focused
-                              ? AppColors.accent
-                              : AppColors.borderInput,
-                        ),
-                      );
-                    }),
-                    prefix: const Padding(
-                      padding: EdgeInsets.only(left: 16, right: 12),
-                      child: Icon(FluentIcons.globe,
-                          size: 17, color: AppColors.textMuted),
+          LayoutBuilder(builder: (context, c) {
+            // 窄栏时把 130px 的主按钮换到输入框下方，否则按钮的固定宽度会
+            // 把 Row 撑爆（RenderFlex 右溢出）
+            final stacked = c.maxWidth < AppSize.urlRowBreakpoint;
+            final field = SizedBox(
+              height: AppSize.input,
+              child: TextBox(
+                key: const Key('url_field'),
+                controller: _urlCtrl,
+                placeholder: s.urlPlaceholder,
+                placeholderStyle: AppText.label(color: AppColors.textDim),
+                style: AppText.body(color: AppColors.textPrimary),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                highlightColor: Colors.transparent,
+                unfocusedColor: Colors.transparent,
+                decoration:
+                    WidgetStateProperty.resolveWith<BoxDecoration>((states) {
+                  final focused = states.contains(WidgetState.focused);
+                  return BoxDecoration(
+                    color: AppColors.bgBase,
+                    borderRadius: BorderRadius.circular(AppRadius.field),
+                    border: Border.all(
+                      color: focused ? AppColors.accent : AppColors.borderInput,
                     ),
-                    suffix: _hasText
-                        ? Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: IconButton(
-                              icon: const Icon(FluentIcons.clear, size: 12),
-                              onPressed: _urlCtrl.clear,
-                              style: const ButtonStyle(
-                                backgroundColor:
-                                    WidgetStatePropertyAll(Colors.transparent),
-                              ),
-                            ),
-                          )
-                        : null,
-                    onSubmitted: (_) => _analyze(),
-                  ),
+                  );
+                }),
+                prefix: const Padding(
+                  padding: EdgeInsets.only(left: 16, right: 12),
+                  child: Icon(FluentIcons.globe,
+                      size: 17, color: AppColors.textMuted),
                 ),
+                suffix: _hasText
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: IconButton(
+                          icon: const Icon(FluentIcons.clear, size: 12),
+                          onPressed: _urlCtrl.clear,
+                          style: const ButtonStyle(
+                            backgroundColor:
+                                WidgetStatePropertyAll(Colors.transparent),
+                          ),
+                        ),
+                      )
+                    : null,
+                onSubmitted: (_) => _analyze(),
               ),
-              const SizedBox(width: 12),
-              PrimaryButton(
-                key: const Key('analyze_button'),
-                label: analyzing ? s.analyzing : s.analyze,
-                icon: FluentIcons.lightbulb,
-                width: 130,
-                height: AppSize.input,
-                onPressed: analyzing ? null : _analyze,
-              ),
-            ],
-          ),
+            );
+            return Flex(
+              direction: stacked ? Axis.vertical : Axis.horizontal,
+              crossAxisAlignment: stacked
+                  ? CrossAxisAlignment.stretch
+                  : CrossAxisAlignment.center,
+              children: [
+                // 纵向时用固定高度（Expanded 在 Column 里会抢纵向空间），
+                // 横向时才 Expanded 占满剩余宽度
+                stacked ? field : Expanded(child: field),
+                SizedBox(width: stacked ? 0 : 12, height: stacked ? 12 : 0),
+                PrimaryButton(
+                  key: const Key('analyze_button'),
+                  label: analyzing ? s.analyzing : s.analyze,
+                  icon: FluentIcons.lightbulb,
+                  // null → 交给父级约束（堆叠时由 CrossAxisAlignment.stretch 撑满）
+                  width: stacked ? null : 130,
+                  height: AppSize.input,
+                  onPressed: analyzing ? null : _analyze,
+                ),
+              ],
+            );
+          }),
           const SizedBox(height: 16),
           _statusLine(analysis),
         ],

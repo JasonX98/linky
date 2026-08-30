@@ -29,6 +29,34 @@ enum HistoryFilter { all, completed, failed }
 /// 列宽固定以保证各行列对齐）。
 const double _actionColWidth = 128;
 
+/// 表格列宽：窗口未设最小尺寸（Win32 runner 未处理 WM_GETMINMAXINFO），
+/// 用户可以缩到很窄，因此按可用宽度分档——先压缩"格式/时间"，再整列隐藏，
+/// 保证"文件名 / 状态 / 操作"三列始终可见且不会 RenderFlex 溢出。
+class _TableLayout {
+  const _TableLayout({
+    required this.format,
+    required this.time,
+    required this.status,
+  });
+
+  /// 0 表示隐藏该列
+  final double format;
+  final double time;
+  final double status;
+
+  double get actions => _actionColWidth;
+
+  static _TableLayout of(double available) {
+    if (available < 520) {
+      return const _TableLayout(format: 0, time: 0, status: 84);
+    }
+    if (available < 740) {
+      return const _TableLayout(format: 92, time: 92, status: 84);
+    }
+    return const _TableLayout(format: 130, time: 130, status: 92);
+  }
+}
+
 class HistoryPage extends ConsumerStatefulWidget {
   const HistoryPage({super.key});
 
@@ -167,29 +195,41 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     }
     return AppCard(
       padding: EdgeInsets.zero,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(s.colFileName, style: AppText.chip()),
-                ),
-                SizedBox(width: 130, child: Text(s.colFormat, style: AppText.chip())),
-                SizedBox(width: 130, child: Text(s.colTime, style: AppText.chip())),
-                SizedBox(width: 92, child: Text(s.colStatus, style: AppText.chip())),
-                const SizedBox(width: _actionColWidth),
-              ],
+      child: LayoutBuilder(builder: (context, c) {
+        // 行左右各有 20 padding，故可用宽度要减去 40
+        final lay = _TableLayout.of(c.maxWidth - 40);
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(s.colFileName, style: AppText.chip()),
+                  ),
+                  if (lay.format > 0)
+                    SizedBox(
+                        width: lay.format,
+                        child: Text(s.colFormat, style: AppText.chip())),
+                  if (lay.time > 0)
+                    SizedBox(
+                        width: lay.time,
+                        child: Text(s.colTime, style: AppText.chip())),
+                  SizedBox(
+                      width: lay.status,
+                      child: Text(s.colStatus, style: AppText.chip())),
+                  SizedBox(width: lay.actions),
+                ],
+              ),
             ),
-          ),
-          for (final row in rows) _historyRow(row),
-        ],
-      ),
+            for (final row in rows) _historyRow(row, lay),
+          ],
+        );
+      }),
     );
   }
 
-  Widget _historyRow(DownloadHistoryEntry row) {
+  Widget _historyRow(DownloadHistoryEntry row, _TableLayout lay) {
     final s = S.of(context);
     final hasFile = row.filePath != null;
     final style = _statusStyle(row.status);
@@ -248,22 +288,24 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
               ],
             ),
           ),
-          SizedBox(
-            width: 130,
-            child: Text(_formatPreset(row.formatLabel),
-                style: AppText.meta(color: AppColors.textBody),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-          ),
-          SizedBox(
-            width: 130,
-            child: Text(
-              formatHistoryTime(context, row.completedAt ?? row.createdAt),
-              style: AppText.meta(),
+          if (lay.format > 0)
+            SizedBox(
+              width: lay.format,
+              child: Text(_formatPreset(row.formatLabel),
+                  style: AppText.meta(color: AppColors.textBody),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ),
-          ),
+          if (lay.time > 0)
+            SizedBox(
+              width: lay.time,
+              child: Text(
+                formatHistoryTime(context, row.completedAt ?? row.createdAt),
+                style: AppText.meta(),
+              ),
+            ),
           SizedBox(
-            width: 92,
+            width: lay.status,
             child: Row(
               children: [
                 StatusDot(color: style.color),
@@ -278,7 +320,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             ),
           ),
           SizedBox(
-            width: _actionColWidth,
+            width: lay.actions,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
