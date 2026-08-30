@@ -400,7 +400,8 @@ class _StatusStyle {
   final String Function(S) label;
 }
 
-/// 行内图标操作按钮。
+/// 行内图标操作按钮。原型风格：纯文字色图标，无背景无边框，
+/// hover 变白。所有操作按钮（打开文件/目录/重试/删除）共用此样式。
 class _RowAction extends StatelessWidget {
   const _RowAction({
     required Key key,
@@ -417,10 +418,19 @@ class _RowAction extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: IconButton(
-          icon: Icon(icon, size: 16, color: AppColors.textMuted),
+          icon: Icon(icon, size: 16),
           onPressed: onPressed,
-          style: const ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+          style: ButtonStyle(
+            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+            foregroundColor:
+                WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.hovered)) {
+                return AppColors.textPrimary;
+              }
+              return AppColors.textMuted;
+            }),
+            padding: const WidgetStatePropertyAll(
+                EdgeInsets.all(6)),
           ),
         ),
       );
