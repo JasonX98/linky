@@ -50,7 +50,6 @@ class _PageService extends EngineUpdateService {
 
 late SharedPreferences prefs;
 Future<String?> Function()? picker;
-Future<String?> Function()? cookiePicker;
 
 // locale 必须由 settingsProvider 驱动（与 App 相同的接线），
 // SettingsPage 作为 home 直接挂载，避免拖入下载/历史页的依赖
@@ -66,7 +65,6 @@ class _LocaleHost extends ConsumerWidget {
       supportedLocales: S.supportedLocales,
       home: SettingsPage(
         directoryPicker: picker,
-        cookieFilePicker: cookiePicker,
       ),
     );
   }
@@ -80,7 +78,6 @@ void main() {
     SharedPreferences.setMockInitialValues({'language': 'zh'});
     prefs = await SharedPreferences.getInstance();
     picker = null;
-    cookiePicker = null;
   });
 
   Widget host() => ProviderScope(
@@ -337,29 +334,12 @@ void main() {
     expect(sEn.updateTimeout, contains('timed out'));
   });
 
-  testWidgets('cookie file row picks, persists and clears', (tester) async {
-    // 必须先设置 picker 再 pump：_LocaleHost 在 build 时捕获 cookieFilePicker
-    cookiePicker = () async => r'C:\cookies\net.txt';
+  testWidgets('cookie selector no longer lives in settings', (tester) async {
+    // Cookie 文件选择已迁至下载页（链接框下方），设置页不得再出现
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
     await openSection(tester, 'section_download_tab');
-    // 未设置时显示占位（右侧徽标"未设置" + 路径框占位文案）
-    expect(find.text('未设置'), findsOneWidget);
+    expect(find.byKey(const Key('cookie_file_button')), findsNothing);
     expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
-
-    // 选择 cookie 文件 → 显示路径 + 出现清除按钮 + 写入 prefs
-    await tester.tap(find.byKey(const Key('cookie_file_button')));
-    await tester.pumpAndSettle();
-    expect(find.text(r'C:\cookies\net.txt'), findsOneWidget);
-    expect(find.text('未设置'), findsNothing);
-    expect(find.byKey(const Key('clear_cookie_button')), findsOneWidget);
-    expect(prefs.getString('cookieFile'), r'C:\cookies\net.txt');
-
-    // 清除 → 回到占位 + 清空 prefs
-    await tester.tap(find.byKey(const Key('clear_cookie_button')));
-    await tester.pumpAndSettle();
-    expect(find.text('未设置'), findsOneWidget);
-    expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
-    expect(prefs.getString('cookieFile'), isNull);
   });
 }

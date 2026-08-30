@@ -128,7 +128,7 @@ class SZh extends S {
 
   @override
   String get downloadCookieHint =>
-      '若视频（如 YouTube）提示需要登录或签名错误，请在设置中导入 Cookie 文件（Netscape 格式），下载与分析都会使用。';
+      '部分视频平台（如 YouTube）需要登录才能解析，导入 Cookie 文件后下载与分析都会使用。';
 
   @override
   String get settingsConcurrency => '同时下载任务数';
@@ -153,6 +153,9 @@ class SZh extends S {
 
   @override
   String get errorLogin => '需要登录后才能下载该内容';
+
+  @override
+  String get cookieHintOnFail => '链接解析失败？尝试导入 Cookie 文件后重试';
 
   @override
   String get errorGeo => '该内容在当前地区不可用';

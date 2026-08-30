@@ -128,7 +128,7 @@ class SEn extends S {
 
   @override
   String get downloadCookieHint =>
-      'If videos (e.g. YouTube) ask for sign-in or show signature errors, import a Cookie file (Netscape format) in Settings; both download and analysis will use it.';
+      'Some video platforms (e.g. YouTube) require sign-in to parse. Import a Cookie file and both download and analysis will use it.';
 
   @override
   String get settingsConcurrency => 'Concurrent downloads';
@@ -153,6 +153,10 @@ class SEn extends S {
 
   @override
   String get errorLogin => 'Sign-in is required to download this content';
+
+  @override
+  String get cookieHintOnFail =>
+      'Link analysis failed? Try importing a Cookie file and retry';
 
   @override
   String get errorGeo => 'This content is not available in your region';

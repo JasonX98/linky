@@ -57,6 +57,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  # 测试里用假实现替换 FileSelectorPlatform.instance（file_selector 未导出该类）
+  file_selector_platform_interface: ^2.7.0
   drift_dev: ^2.34.5
   build_runner: ^2.15.1
   msix: ^3.18.0

@@ -6,6 +6,7 @@
 
 import 'dart:async';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_downloader/engine/models.dart';
@@ -55,6 +56,18 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
     if (url.isEmpty) return;
     _selectedUrls = null;
     await ref.read(analysisProvider.notifier).analyze(url);
+  }
+
+  Future<void> _pickCookieFile() async {
+    final String? path;
+    const group = XTypeGroup(
+      label: 'Netscape cookie',
+      extensions: ['txt', 'cookie', 'cookies'],
+    );
+    final file = await openFile(acceptedTypeGroups: const [group]);
+    path = file?.path;
+    if (path == null || path.isEmpty) return;
+    ref.read(settingsProvider.notifier).setCookieFile(path);
   }
 
   Future<void> _enqueue() async {
@@ -300,6 +313,12 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
           }),
           const SizedBox(height: 16),
           _statusLine(analysis),
+          // Cookie 文件选择器（从设置页移至此处）
+          _cookieRow(),
+          // 分析失败且未设 Cookie 时提示用户导入
+          if (analysis is AnalysisError &&
+              ref.watch(settingsProvider).cookieFile?.isEmpty != false)
+            _cookieHintRow(s),
         ],
       ),
     );
@@ -341,6 +360,115 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
         const SizedBox(width: 6),
         Expanded(child: content),
       ],
+    );
+  }
+
+  // ——— Cookie 文件选择行（从设置页移来）——
+
+  Widget _cookieRow() {
+    final s = S.of(context);
+    final settings = ref.watch(settingsProvider);
+    final cookieSet = settings.cookieFile?.isNotEmpty == true;
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bgBase,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(FluentIcons.folder_open, size: 13, color: AppColors.accent),
+              const SizedBox(width: 8),
+              // 标题必须可收缩：窄窗（560px）下徽标要留位置，否则整行溢出
+              Expanded(
+                child: Text(
+                  s.settingsCookieFile,
+                  style: AppText.label(color: AppColors.textBody),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (cookieSet ? AppColors.success : AppColors.textMuted)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  cookieSet ? s.cookieAdded : s.cookieFileNotSet,
+                  style: AppText.chip(
+                      color: cookieSet
+                          ? AppColors.successText
+                          : AppColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  cookieSet ? settings.cookieFile! : s.cookieEmpty,
+                  style: AppText.meta(
+                      color: cookieSet ? AppColors.textBody : AppColors.textDim),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              GhostButton(
+                key: const Key('cookie_file_button'),
+                label: s.chooseFile,
+                onPressed: _pickCookieFile,
+              ),
+              if (cookieSet) ...[
+                const SizedBox(width: 8),
+                GhostButton(
+                  key: const Key('clear_cookie_button'),
+                  label: s.clearCookieFile,
+                  onPressed: () => ref
+                      .read(settingsProvider.notifier)
+                      .setCookieFile(null),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(s.downloadCookieHint,
+              style: AppText.meta(color: AppColors.textDim)),
+        ],
+      ),
+    );
+  }
+
+  /// 分析失败时的 Cookie 导入建议提示。
+  Widget _cookieHintRow(S s) {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(FluentIcons.info, size: 14, color: AppColors.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(s.cookieHintOnFail,
+                style: AppText.meta(color: AppColors.warning)),
+          ),
+        ],
+      ),
     );
   }
 

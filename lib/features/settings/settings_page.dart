@@ -26,14 +26,10 @@ class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({
     super.key,
     this.directoryPicker,
-    this.cookieFilePicker,
   });
 
   /// 测试注入的目录选择器；null 时使用 file_selector 的真实选择器
   final Future<String?> Function()? directoryPicker;
-
-  /// 测试注入的 cookie 文件选择器；null 时使用 file_selector 的真实 openFile
-  final Future<String?> Function()? cookieFilePicker;
 
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
@@ -48,23 +44,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final dir = await pick();
     if (dir == null || dir.isEmpty) return;
     ref.read(settingsProvider.notifier).setDownloadDir(dir);
-  }
-
-  Future<void> _pickCookieFile() async {
-    final String? path;
-    final pick = widget.cookieFilePicker;
-    if (pick != null) {
-      path = await pick();
-    } else {
-      const group = XTypeGroup(
-        label: 'Netscape cookie',
-        extensions: ['txt', 'cookie', 'cookies'],
-      );
-      final file = await openFile(acceptedTypeGroups: const [group]);
-      path = file?.path;
-    }
-    if (path == null || path.isEmpty) return;
-    ref.read(settingsProvider.notifier).setCookieFile(path);
   }
 
   /// 设置在改动时即刻持久化，保存按钮只做一次轻反馈。
@@ -244,7 +223,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final s = S.of(context);
     final settings = ref.watch(settingsProvider);
     final dirSet = settings.downloadDir?.isNotEmpty == true;
-    final cookieSet = settings.cookieFile?.isNotEmpty == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -274,37 +252,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       label: s.chooseFolder,
                       onPressed: _browse,
                     ),
-                  ],
-                ),
-              ),
-              _SettingBlock(
-                title: s.settingsCookieFile,
-                subtitle: s.downloadCookieHint,
-                badge: cookieSet ? s.cookieAdded : s.cookieFileNotSet,
-                badgeColor: cookieSet ? AppColors.success : AppColors.textMuted,
-                child: Row(
-                  children: [
-                    Expanded(child: _PathField(
-                      icon: FluentIcons.folder_open,
-                      text: cookieSet ? settings.cookieFile! : s.cookieEmpty,
-                      dim: !cookieSet,
-                    )),
-                    const SizedBox(width: 8),
-                    GhostButton(
-                      key: const Key('cookie_file_button'),
-                      label: s.chooseFile,
-                      onPressed: _pickCookieFile,
-                    ),
-                    if (cookieSet) ...[
-                      const SizedBox(width: 8),
-                      GhostButton(
-                        key: const Key('clear_cookie_button'),
-                        label: s.clearCookieFile,
-                        onPressed: () => ref
-                            .read(settingsProvider.notifier)
-                            .setCookieFile(null),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -489,15 +436,11 @@ class _SettingBlock extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.child,
-    this.badge,
-    this.badgeColor,
   });
 
   final String title;
   final String subtitle;
   final Widget child;
-  final String? badge;
-  final Color? badgeColor;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -508,37 +451,14 @@ class _SettingBlock extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title,
-                          style: AppText.label(
-                              color: AppColors.textPrimary,
-                              weight: FontWeight.w600)),
-                      const SizedBox(height: 4),
-                      Text(subtitle, style: AppText.meta()),
-                    ],
-                  ),
-                ),
-                if (badge case final b?) ...[
-                  const SizedBox(width: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: (badgeColor ?? AppColors.textMuted)
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(b,
-                        style: AppText.chip(
-                            color: badgeColor ?? AppColors.textMuted,
-                            weight: FontWeight.w600)),
-                  ),
-                ],
+                Text(title,
+                    style: AppText.label(
+                        color: AppColors.textPrimary, weight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: AppText.meta()),
               ],
             ),
             const SizedBox(height: 12),

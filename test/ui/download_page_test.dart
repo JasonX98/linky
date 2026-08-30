@@ -1,6 +1,7 @@
 // test/ui/download_page_test.dart
 import 'dart:async';
 
+import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,6 +91,64 @@ class FakeUiService extends YtDlpService {
   }
 }
 
+/// file_selector 的 Windows 实现走 pigeon 私有通道，按通道 mock 成本高且脆弱。
+/// 改用插件官方推荐的测试手法：替换 FileSelectorPlatform.instance，
+/// 生产代码（download_page 直连 openFile）无需任何改动。
+class _FakeFileSelector extends FileSelectorPlatform {
+  /// 下一次 openFile 返回的路径；null 表示用户在系统对话框里点了取消。
+  String? nextPath;
+  int openFileCalls = 0;
+
+  @override
+  Future<XFile?> openFile({
+    List<XTypeGroup>? acceptedTypeGroups,
+    String? initialDirectory,
+    String? confirmButtonText,
+  }) async {
+    openFileCalls += 1;
+    final path = nextPath;
+    return path == null ? null : XFile(path);
+  }
+
+  @override
+  Future<List<XFile>> openFiles({
+    List<XTypeGroup>? acceptedTypeGroups,
+    String? initialDirectory,
+    String? confirmButtonText,
+  }) async =>
+      const <XFile>[];
+
+  @override
+  Future<String?> getSavePath({
+    List<XTypeGroup>? acceptedTypeGroups,
+    String? initialDirectory,
+    String? suggestedName,
+    String? confirmButtonText,
+  }) async =>
+      null;
+
+  @override
+  Future<FileSaveLocation?> getSaveLocation({
+    List<XTypeGroup>? acceptedTypeGroups,
+    SaveDialogOptions options = const SaveDialogOptions(),
+  }) async =>
+      null;
+
+  @override
+  Future<String?> getDirectoryPath({
+    String? initialDirectory,
+    String? confirmButtonText,
+  }) async =>
+      null;
+
+  @override
+  Future<List<String>> getDirectoryPaths({
+    String? initialDirectory,
+    String? confirmButtonText,
+  }) async =>
+      const <String>[];
+}
+
 // locale 必须由 settingsProvider 驱动 → pump 真实 App（读 settings.language）
 Widget wrap(FakeUiService service) => ProviderScope(
       overrides: [
@@ -133,10 +192,12 @@ void main() {
   });
 
   setUp(() {
-    // 下载页改为整页滚动后，加高视口让所有元素可点击，避免测试受视口高度影响
+    // 下载页改为整页滚动后，加高视口让所有元素可点击，避免测试受视口高度影响。
+    // 高度需覆盖"链接卡（含迁入的 Cookie 选择行）+ 播放列表条目 + 入队按钮"，
+    // 1000 是这批元素全部展开后的安全值。
     final binding = TestWidgetsFlutterBinding.instance;
     binding.platformDispatcher.views.first
-      ..physicalSize = const Size(1400, 800)
+      ..physicalSize = const Size(1400, 1000)
       ..devicePixelRatio = 1.0;
   });
 
@@ -321,6 +382,73 @@ void main() {
     // 画质下拉必须本地化：引擎枚举自带的 zh label 不得漏到 en 界面
     expect(find.text('Best quality'), findsOneWidget);
     expect(find.text('最佳画质'), findsNothing);
+  });
+
+  testWidgets('cookie row on download page picks, persists and clears',
+      (tester) async {
+    // Cookie 选择器已从"下载设置"页迁入下载页，落点在链接框下方
+    final fs = _FakeFileSelector();
+    FileSelectorPlatform.instance = fs;
+    await tester.pumpWidget(wrap(FakeUiService()));
+    await tester.pumpAndSettle();
+
+    // 未设置：占位文案 + 无清除按钮
+    expect(find.text('未设置'), findsOneWidget);
+    expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
+
+    // 选择文件 → 显示路径 + 出现清除按钮 + 写入 prefs
+    fs.nextPath = r'C:\cookies\net.txt';
+    await tester.tap(find.byKey(const Key('cookie_file_button')));
+    await tester.pumpAndSettle();
+    expect(fs.openFileCalls, 1);
+    expect(find.text(r'C:\cookies\net.txt'), findsOneWidget);
+    expect(find.text('未设置'), findsNothing);
+    expect(find.byKey(const Key('clear_cookie_button')), findsOneWidget);
+    expect(prefs.getString('cookieFile'), r'C:\cookies\net.txt');
+
+    // 清除 → 回到占位 + 清空 prefs
+    await tester.tap(find.byKey(const Key('clear_cookie_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('未设置'), findsOneWidget);
+    expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
+    expect(prefs.getString('cookieFile'), isNull);
+  });
+
+  testWidgets('canceling the cookie dialog leaves preferences untouched',
+      (tester) async {
+    // 用户在系统对话框点取消 → openFile 返回 null，不得覆盖既有值
+    SharedPreferences.setMockInitialValues(
+        {'language': 'zh', 'cookieFile': r'C:\cookies\keep.txt'});
+    prefs = await SharedPreferences.getInstance();
+    FileSelectorPlatform.instance = _FakeFileSelector(); // nextPath 默认 null
+    await tester.pumpWidget(wrap(FakeUiService()));
+    await tester.pumpAndSettle();
+    expect(find.text(r'C:\cookies\keep.txt'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cookie_file_button')));
+    await tester.pumpAndSettle();
+    expect(prefs.getString('cookieFile'), r'C:\cookies\keep.txt');
+    expect(find.text('未设置'), findsNothing);
+  });
+
+  testWidgets('analysis failure nudges user to import a cookie file',
+      (tester) async {
+    // 解析失败 + 未设 Cookie → 给出导入建议
+    await tester.pumpWidget(wrapError());
+    await tester.pumpAndSettle();
+    expect(find.text('链接解析失败？尝试导入 Cookie 文件后重试'), findsOneWidget);
+  });
+
+  testWidgets('cookie hint disappears once a cookie file is set',
+      (tester) async {
+    // 已导入 Cookie 后不再提示，避免已经照做的人被反复打扰
+    SharedPreferences.setMockInitialValues(
+        {'language': 'zh', 'cookieFile': r'C:\cookies\net.txt'});
+    prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(wrapError());
+    await tester.pumpAndSettle();
+    expect(find.text('下载失败'), findsOneWidget);
+    expect(find.text('链接解析失败？尝试导入 Cookie 文件后重试'), findsNothing);
   });
 
   testWidgets('unknown error shows friendly core, never raw', (tester) async {
