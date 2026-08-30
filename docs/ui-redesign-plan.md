@@ -115,3 +115,30 @@ scaffoldBackgroundColor: bgBase, cardColor: bgCard, menuColor: bgSurface, micaBa
 - **Q1 设置页分区** → **原型式分区切换**：一次只显示一个分区，同步改写 `settings_page_test` / `app_shell_test` 的断言（测试需先点分区 tab 再找控件）
 - **Q2 历史筛选维度** → **按状态筛选**：全部 / 已完成 / 失败（对应数据库 `status` 字段），保留原型 tab 视觉
 - **Q3 历史分页** → **暂不分页**：长列表直接滚动，不引入分页状态
+
+---
+
+## 十一、执行结果（已完成）
+
+8 步全部落地，对应提交 `b0aab4d` → `c6a604a`。门禁状态：`flutter analyze` 零告警、
+`flutter test` 136 通过 / 8 跳过（e2e，预期）。
+
+与计划的**偏差记录**：
+
+1. `PageHeader` 改名 `AppHeader` —— fluent_ui 已导出同名 `PageHeader`，直接冲突。
+2. 通用组件表里的 `SectionTitle` 实为 `SectionHeader`，并新增 `SubtitleLine`（规避
+   `use_null_aware_elements` 告警）、`FilterTab`、`QualityChip`、`SegmentedPicker`。
+3. `CheckUpdateButton` 抽到 `lib/features/settings/engine_update_action.dart`，
+   下载页头部与设置页"关于与更新"共用一份逻辑，避免文案/节流分叉。
+4. 历史页操作列宽由原型 64px 改为 **128px**：fluent `IconButton` 实为 32px 宽，
+   4 个按钮 128px 才会不溢出（800px 测试表面下原 56px 会报 RenderFlex overflow）。
+5. 历史行容器新增 `Key('history_row_<id>')`、筛选 tab 新增
+   `Key('filter_<all|completed|failed>_tab')`：状态徽标文案与筛选 tab 文案同名
+   （"已完成"/"失败"），不加 key 无法精确断言。
+6. 设置页分区 tab key：`section_general_tab` / `section_download_tab` / `section_about_tab`；
+   并发步进器 key：`concurrency_stepper` / `concurrency_decrement` / `concurrency_increment`；
+   语言分段控件 key：`language_picker`（替换原 `language_combo`）。
+7. **key 只挂最外层封装**：`PrimaryButton` / `GhostButton` / `CheckUpdateButton`
+   若把同一 key 继续传给内层 fluent 控件，`find.byKey` 会同时命中两个 Element。
+
+`flutter test` 在本机需先摘掉代理变量，详见 `AGENTS.md` 的"测试与 e2e 注意点"。
