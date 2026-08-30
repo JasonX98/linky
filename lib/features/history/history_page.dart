@@ -327,7 +327,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 if (hasFile)
                   _RowAction(
                     key: Key('open_file_${row.id}'),
-                    icon: Icon(FluentIcons.document, size: 16),
+                    icon: const FilePlayIcon(size: 16),
                     tooltip: s.openFile,
                     onPressed: () => unawaited(Process.run(
                             'explorer.exe', [row.filePath!])

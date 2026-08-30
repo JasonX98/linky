@@ -764,3 +764,90 @@ class _FolderOpenPainter extends CustomPainter {
   @override
   bool shouldRepaint(_FolderOpenPainter old) => old.color != color;
 }
+
+/// Lucide 风格的「打开文件」图标（file-play）。
+///
+/// 文件图标内嵌播放三角，语义为"用默认程序打开视频文件"。
+/// 替代此前的 [FluentIcons.document]（空白矩形，辨识度低）。
+/// 来源：https://github.com/lucide-icons/lucide/blob/main/icons/file-play.svg
+class FilePlayIcon extends StatelessWidget {
+  const FilePlayIcon({
+    super.key,
+    this.size = 16,
+    this.color = const Color(0xFF94A3B8),
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _FilePlayPainter(color),
+          size: Size(size, size),
+        ),
+      );
+}
+
+class _FilePlayPainter extends CustomPainter {
+  _FilePlayPainter(this.color);
+  final Color color;
+
+  // Lucide 官方 file-play.svg 路径（24×24 viewBox, stroke-width=2）
+  // Path 1: 文件外框
+  // Path 2: 折角
+  // Path 3: 播放三角
+  static const _r = Radius.circular(2.0);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final scale = size.width / 24.0;
+    canvas.save();
+    canvas.scale(scale);
+
+    // Path 1: 文件主体轮廓
+    final body = Path()
+      ..moveTo(6, 22)
+      ..arcToPoint(const Offset(4, 20),
+          radius: _r, rotation: 0, largeArc: false, clockwise: false)
+      ..lineTo(4, 4)
+      ..arcToPoint(const Offset(6, 2),
+          radius: _r, rotation: 0, largeArc: false, clockwise: false)
+      ..lineTo(14, 2)
+      ..arcToPoint(const Offset(15.704, 2.706),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(19.292, 6.294)
+      ..arcToPoint(const Offset(20, 8),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(20, 20)
+      ..arcToPoint(const Offset(18, 22),
+          radius: _r, rotation: 0, largeArc: false, clockwise: false);
+    canvas.drawPath(body, paint);
+
+    // Path 2: 折角线
+    final corner = Path()..moveTo(14, 2)..lineTo(14, 7)..lineTo(19, 8);
+    canvas.drawPath(corner, paint);
+
+    // Path 3: 播放三角
+    final play = Path()
+      ..moveTo(15.033, 13.44)
+      ..lineTo(10.968, 15.792)
+      ..lineTo(10.968, 11.088)
+      ..close();
+    canvas.drawPath(play, paint);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_FilePlayPainter old) => old.color != color;
+}
