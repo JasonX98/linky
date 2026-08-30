@@ -1,12 +1,12 @@
 # AGENTS.md
 
 Flutter **Windows 桌面端**应用（基于 yt-dlp 的视频下载器，Riverpod + drift/SQLite）。
-真正的 Flutter 工程位于 `downloadApp/` 子目录下。
 
 ## 仓库布局要点
-- git 仓库根目录是本工程（Flutter 项目）的**父目录**。提交路径必须落在 `downloadApp/...` 之下。
-  父目录中还有未跟踪的用户目录（`Sany/`、`SoftProvider/`、`private/`、`skills-lock.json`），**切勿提交它们**。
-- `downloadApp/assets/bin/` 存放 `yt-dlp.exe`、`ffmpeg.exe`、`ffprobe.exe`，但**不纳入 git**（仅保留 `.gitkeep`）。
+- git 仓库根目录即本工程根目录（`DownloadApp/`，分支 `main`，初始提交 `fc7b81c`）。
+  Flutter 工程就在仓库根下，无需进入子目录。
+- `.workbuddy/`（本地记忆/输出）与 `build/`、`.dart_tool/` 均在 `.gitignore` 中排除，**切勿提交**。
+- `assets/bin/` 存放 `yt-dlp.exe`、`ffmpeg.exe`、`ffprobe.exe`，但**不纳入 git**（仅保留 `.gitkeep`）。
   克隆后必须先拉取引擎才能运行。
 
 ## 首次环境准备（非显而易见）
