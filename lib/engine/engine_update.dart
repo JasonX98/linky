@@ -121,10 +121,10 @@ class EngineUpdateService {
         environment: {'PYTHONIOENCODING': 'utf-8'});
     String? firstLine;
     try {
-      firstLine = await proc.stderr.first;
+      firstLine = await proc.stderr.first.timeout(checkTimeout);
     } on StateError {
       try {
-        firstLine = await proc.stdout.first;
+        firstLine = await proc.stdout.first.timeout(checkTimeout);
       } on StateError {
         firstLine = null;
       }
@@ -305,7 +305,8 @@ class EngineUpdateService {
       environment: {'PYTHONIOENCODING': 'utf-8'},
     );
     try {
-      final lines = await proc.stdout.take(1).toList();
+      final lines =
+          await proc.stdout.take(1).toList().timeout(checkTimeout);
       return lines.isEmpty ? null : lines.first.trim();
     } finally {
       // 读取首行后确保子进程终止（已退出时 kill 幂等），避免句柄泄漏。
@@ -338,15 +339,18 @@ class EngineUpdateService {
       ..connectionTimeout = checkTimeout
       ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
-      final req = await client.getUrl(Uri.parse(url)).timeout(checkTimeout);
-      req.headers
-          .set(HttpHeaders.userAgentHeader, 'video_downloader/1.0 (yt-dlp updater)');
-      final resp = await req.close().timeout(checkTimeout);
-      final body = await resp.transform(utf8.decoder).join().timeout(checkTimeout);
-      if (resp.statusCode != 200) {
-        throw DownloadException(EngineErrorKind.network, 'HTTP ${resp.statusCode}');
-      }
-      return body;
+      return await () async {
+        final req = await client.getUrl(Uri.parse(url));
+        req.headers
+            .set(HttpHeaders.userAgentHeader, 'video_downloader/1.0 (yt-dlp updater)');
+        final resp = await req.close();
+        final body = await resp.transform(utf8.decoder).join();
+        if (resp.statusCode != 200) {
+          throw DownloadException(
+              EngineErrorKind.network, 'HTTP ${resp.statusCode}');
+        }
+        return body;
+      }().timeout(checkTimeout);
     } finally {
       client.close();
     }

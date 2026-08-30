@@ -1,4 +1,5 @@
 // test/engine/engine_update_test.dart
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -49,6 +50,35 @@ class _FakeLocator extends EngineLocator {
   @override
   ResolvedEngine resolve() =>
       ResolvedEngine(ytDlpPath: r'C:\fake\yt-dlp.exe', ffmpegPath: _ffmpegPath);
+}
+
+/// 测试用：stdout/stderr 永不发出也永不关闭的假进程（模拟引擎卡死）。
+class _HangingAppProcess implements AppProcess {
+  final _stdoutCtrl = StreamController<String>();
+  final _stderrCtrl = StreamController<String>();
+  @override
+  Stream<String> get stdout => _stdoutCtrl.stream;
+  @override
+  Stream<String> get stderr => _stderrCtrl.stream;
+  @override
+  Future<int> get exitCode => Completer<int>().future;
+  @override
+  void kill() {}
+  @override
+  int get pid => 1;
+  @override
+  Future<void> killTree() async {}
+}
+
+/// 测试用：始终返回卡死进程的 launcher。
+class _HangingLauncher implements ProcessLauncher {
+  @override
+  Future<AppProcess> start(
+    String executable,
+    List<String> arguments, {
+    Map<String, String>? environment,
+  }) async =>
+      _HangingAppProcess();
 }
 
 void main() {
@@ -248,6 +278,34 @@ void main() {
       // .bak 已清理
       expect(File(p.join(binDir, 'ffmpeg.exe.bak')).existsSync(), isFalse);
       expect(File(p.join(binDir, 'ffprobe.exe.bak')).existsSync(), isFalse);
+    });
+  });
+
+  group('subprocess timeout', () {
+    test('checkForUpdate times out instead of hanging when --version stalls',
+        () async {
+      final service = EngineUpdateService(
+        locator: _FakeLocator(null),
+        launcher: _HangingLauncher(),
+        checkTimeout: const Duration(milliseconds: 100),
+      );
+      await expectLater(
+        service.checkForUpdate(),
+        throwsA(isA<TimeoutException>()),
+      );
+    });
+
+    test('ffmpegVersion times out instead of hanging when -version stalls',
+        () async {
+      final service = EngineUpdateService(
+        locator: _FakeLocator(r'C:\fake\ffmpeg.exe'),
+        launcher: _HangingLauncher(),
+        checkTimeout: const Duration(milliseconds: 100),
+      );
+      await expectLater(
+        service.ffmpegVersion(),
+        throwsA(isA<TimeoutException>()),
+      );
     });
   });
 }
