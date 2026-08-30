@@ -140,5 +140,10 @@
   "cookieEmpty": "尚未添加 Cookie 文件",
   "aboutVersionLine": "版本 {version} · Windows 桌面版",
   "@aboutVersionLine": { "placeholders": { "version": { "type": "String" } } },
-  "ffmpegVersion": "FFmpeg 版本"
+  "ffmpegVersion": "FFmpeg 版本",
+  "proxyTitle": "网络代理",
+  "proxyDesc": "启用后所有网络请求（引擎更新、链接解析等）将走配置的代理服务器",
+  "proxyHost": "代理地址",
+  "proxyPort": "端口",
+  "proxyEnabled": "使用代理"
 }

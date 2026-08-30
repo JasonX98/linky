@@ -6,6 +6,7 @@
 // clear_cookie_button / preset_combo? / language_combo / check_update_button），
 // 仅把 Slider 换成步进器、ComboBox 语言选择换成青色分段控件。
 
+import 'dart:async';
 import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -190,6 +191,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                   ],
                 ),
+              ),
+              _SettingRow(
+                title: s.proxyTitle,
+                subtitle: s.proxyDesc,
+                child: _ProxyConfig(),
               ),
             ],
           ),
@@ -570,4 +576,124 @@ class _VersionLine extends StatelessWidget {
           Text(value, style: AppText.meta(color: AppColors.textBody)),
         ],
       );
+}
+
+/// 代理配置控件：启用开关 + 地址/端口输入（仅启用时显示）。
+class _ProxyConfig extends ConsumerStatefulWidget {
+  const _ProxyConfig();
+
+  @override
+  ConsumerState<_ProxyConfig> createState() => _ProxyConfigState();
+}
+
+class _ProxyConfigState extends ConsumerState<_ProxyConfig> {
+  late TextEditingController _hostCtrl;
+  late TextEditingController _portCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings = ref.read(settingsProvider);
+    _hostCtrl = TextEditingController(text: settings.proxyHost);
+    _portCtrl =
+        TextEditingController(text: settings.proxyPort.toString());
+  }
+
+  @override
+  void dispose() {
+    _hostCtrl.dispose();
+    _portCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    final settings = ref.watch(settingsProvider);
+    final enabled = settings.proxyEnabled;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 启用开关行
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppToggleSwitch(
+              value: enabled,
+              onChanged: (v) =>
+                  ref.read(settingsProvider.notifier).setProxyEnabled(v),
+            ),
+            const SizedBox(width: 8),
+            Text(s.proxyEnabled,
+                style: AppText.meta(
+                    color: enabled ? AppColors.accent : AppColors.textMuted)),
+          ],
+        ),
+        if (enabled) ...[
+          const SizedBox(height: 10),
+          // 地址 : 端口 输入行（固定宽度，避免外层 Column 无宽度约束时溢出）
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                  width: 160,
+                  child: _proxyField(s.proxyHost, _hostCtrl, false)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(':',
+                    style:
+                        AppText.body(color: AppColors.textSecondary)),
+              ),
+              SizedBox(
+                width: 64,
+                child: _proxyField(s.proxyPort, _portCtrl, true),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _proxyField(String label, TextEditingController ctrl, bool isPort) {
+    return SizedBox(
+      height: 32,
+      child: TextBox(
+        controller: ctrl,
+        placeholder: label,
+        style: AppText.meta(),
+        placeholderStyle: AppText.meta(color: AppColors.textDim),
+        keyboardType: isPort ? TextInputType.number : TextInputType.url,
+        onSubmitted: (_) => _save(),
+        onChanged: (_) => _debounceSave(),
+        decoration:
+            WidgetStateProperty.resolveWith<BoxDecoration>((states) {
+          final focused = states.contains(WidgetState.focused);
+          return BoxDecoration(
+            color: AppColors.bgBase,
+            borderRadius: BorderRadius.circular(AppRadius.control),
+            border: Border.all(
+                color: focused ? AppColors.accent : AppColors.border),
+          );
+        }),
+      ),
+    );
+  }
+
+  /// 防抖保存：避免每次按键都写 prefs。
+  Timer? _debounce;
+  void _debounceSave() {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), _save);
+  }
+
+  void _save() {
+    final host = _hostCtrl.text.trim();
+    final port = int.tryParse(_portCtrl.text.trim()) ?? 7897;
+    final notifier = ref.read(settingsProvider.notifier);
+    if (host.isNotEmpty) notifier.setProxyHost(host);
+    notifier.setProxyPort(port);
+  }
 }

@@ -133,5 +133,10 @@
   "cookieEmpty": "No cookie file added",
   "aboutVersionLine": "Version {version} · Windows desktop",
   "@aboutVersionLine": { "placeholders": { "version": { "type": "String" } } },
-  "ffmpegVersion": "FFmpeg version"
+  "ffmpegVersion": "FFmpeg version",
+  "proxyTitle": "Proxy",
+  "proxyDesc": "When enabled, all network requests (engine updates, link parsing, etc.) will go through the configured proxy server",
+  "proxyHost": "Proxy address",
+  "proxyPort": "Port",
+  "proxyEnabled": "Use proxy"
 }

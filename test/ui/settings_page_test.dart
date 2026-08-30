@@ -342,4 +342,26 @@ void main() {
     expect(find.byKey(const Key('cookie_file_button')), findsNothing);
     expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
   });
+
+  testWidgets('proxy config toggles and persists', (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    // 常规卡片默认代理关闭
+    expect(prefs.getBool('proxyEnabled'), isNull);
+
+    // 代理开关是第二个 AppToggleSwitch（第一个是"完成后通知"）
+    final toggles = find.byType(AppToggleSwitch);
+    expect(toggles, findsNWidgets(2));
+    final proxyToggle = toggles.at(1);
+
+    // 开启
+    await tester.tap(proxyToggle);
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('proxyEnabled'), isTrue);
+
+    // 关闭
+    await tester.tap(proxyToggle);
+    await tester.pumpAndSettle();
+    expect(prefs.getBool('proxyEnabled'), isFalse);
+  });
 }

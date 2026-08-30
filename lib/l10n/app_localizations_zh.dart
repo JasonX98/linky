@@ -413,4 +413,19 @@ class SZh extends S {
 
   @override
   String get ffmpegVersion => 'FFmpeg 版本';
+
+  @override
+  String get proxyTitle => '网络代理';
+
+  @override
+  String get proxyDesc => '启用后所有网络请求（引擎更新、链接解析等）将走配置的代理服务器';
+
+  @override
+  String get proxyHost => '代理地址';
+
+  @override
+  String get proxyPort => '端口';
+
+  @override
+  String get proxyEnabled => '使用代理';
 }
