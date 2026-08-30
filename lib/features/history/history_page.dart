@@ -343,9 +343,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                         .then((_) {}, onError: (_) {})),
                   ),
                 // 重试按钮：仅失败/取消状态可点击，已完成置灰
+                // 图标用 refresh（逆时针循环箭头），对齐原型 lucide:rotate-ccw
                 _RowAction(
                   key: Key('redownload_${row.id}'),
-                  icon: FluentIcons.redo,
+                  icon: FluentIcons.refresh,
                   tooltip: s.retry,
                   onPressed: (row.status == 'failed' || row.status == 'canceled')
                       ? () => unawaited(ref
