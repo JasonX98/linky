@@ -1,4 +1,9 @@
 // lib/features/download/download_page.dart
+//
+// 下载页 = 头部 + 链接输入卡 + 解析结果（单视频预览 / 播放列表勾选）+ 任务列表。
+// 交互键位（url_field / analyze_button / enqueue_button / entry_list /
+// check_<url> / cancel_<id> / retry_<id> / open_<id>）全部保留，仅重做视觉。
+
 import 'dart:async';
 
 import 'package:fluent_ui/fluent_ui.dart';
@@ -7,9 +12,14 @@ import 'package:video_downloader/engine/models.dart';
 import 'package:video_downloader/features/download/analysis_controller.dart';
 import 'package:video_downloader/features/download/download_task.dart';
 import 'package:video_downloader/features/download/error_display.dart';
+import 'package:video_downloader/features/download/format.dart';
 import 'package:video_downloader/features/download/providers.dart';
 import 'package:video_downloader/features/download/preset_label.dart';
+import 'package:video_downloader/features/settings/engine_update_action.dart';
+import 'package:video_downloader/features/shell/app_shell.dart';
 import 'package:video_downloader/l10n/app_localizations.dart';
+import 'package:video_downloader/theme/app_theme.dart';
+import 'package:video_downloader/theme/widgets.dart';
 
 class DownloadPage extends ConsumerStatefulWidget {
   const DownloadPage({super.key});
@@ -21,11 +31,24 @@ class DownloadPage extends ConsumerStatefulWidget {
 class _DownloadPageState extends ConsumerState<DownloadPage> {
   final _urlCtrl = TextEditingController();
   QualityPreset _preset = QualityPreset.best;
+
   /// null = 默认全选（分析成功后的初始状态）
   Set<String>? _selectedUrls;
+  bool _hasText = false;
 
   Set<String> _allUrls(PlaylistMeta meta) =>
       {for (final e in meta.entries) e.url};
+
+  @override
+  void initState() {
+    super.initState();
+    _urlCtrl.addListener(_onUrlChanged);
+  }
+
+  void _onUrlChanged() {
+    final has = _urlCtrl.text.isNotEmpty;
+    if (has != _hasText) setState(() => _hasText = has);
+  }
 
   Future<void> _analyze() async {
     final url = _urlCtrl.text.trim();
@@ -41,11 +64,10 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
     final url = video.webUrl.isNotEmpty ? video.webUrl : _urlCtrl.text.trim();
     await ref.read(downloadQueueProvider.notifier).enqueue(
         url: url,
-        title: video.title.isEmpty
-            ? S.of(context).unknownTitle
-            : video.title,
+        title: video.title.isEmpty ? S.of(context).unknownTitle : video.title,
         preset: _preset,
-        uploader: video.uploader, durationSec: video.durationSec);
+        uploader: video.uploader,
+        durationSec: video.durationSec);
     if (!mounted) return;
     ref.read(analysisProvider.notifier).reset();
     _urlCtrl.clear();
@@ -109,267 +131,675 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
     final s = S.of(context);
     final analysis = ref.watch(analysisProvider);
     final tasks = ref.watch(downloadQueueProvider);
-    final analyzing = analysis is AnalysisLoading;
-    return ScaffoldPage(
-      content: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(children: [
-              Expanded(
-                child: TextBox(
-                  key: const Key('url_field'),
-                  controller: _urlCtrl,
-                  placeholder: s.urlPlaceholder,
+    final concurrency = ref.watch(settingsProvider).concurrency;
+    return Column(
+      children: [
+        AppHeader(
+          title: s.downloadTitle,
+          subtitle: s.downloadSubtitle,
+          action: const CheckUpdateButton(),
+        ),
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: AppSize.contentMax),
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSize.pagePadding,
+                  vertical: AppSize.pagePaddingV,
                 ),
+                children: [
+                  _urlCard(analysis),
+                  if (analysis is AnalysisPlaylist) ...[
+                    const SizedBox(height: 24),
+                    _playlistCard(analysis.meta),
+                  ] else if (analysis is AnalysisVideo) ...[
+                    const SizedBox(height: 24),
+                    _previewCard(analysis.meta),
+                  ],
+                  const SizedBox(height: 32),
+                  SectionHeader(
+                    title: s.activeTasks,
+                    subtitle: s.concurrencyLabel(concurrency),
+                    count: s.taskCount(tasks.length),
+                    trailing: HyperlinkButton(
+                      onPressed: () => ref
+                          .read(appShellIndexProvider.notifier)
+                          .state = 1,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(s.viewAllHistory,
+                              style: AppText.label(color: AppColors.accent)),
+                          const SizedBox(width: 4),
+                          const Icon(FluentIcons.arrow_up_right,
+                              size: 12, color: AppColors.accent),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (tasks.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 48),
+                      child: EmptyState(
+                          icon: FluentIcons.cloud_download,
+                          message: s.noActiveTasks),
+                    )
+                  else
+                    for (final t in tasks)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _taskCard(t),
+                      ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ——— 链接输入卡 ———
+
+  Widget _urlCard(AnalysisState analysis) {
+    final s = S.of(context);
+    final analyzing = analysis is AnalysisLoading;
+    return AppCard(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const IconTile(
+                icon: FluentIcons.link,
+                size: 24,
+                iconSize: 14,
+                radius: 6,
               ),
               const SizedBox(width: 8),
-              FilledButton(
+              Text(s.newTask,
+                  style: AppText.label(
+                      color: AppColors.textBody, weight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(s.videoUrl, style: AppText.label()),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: AppSize.input,
+                  child: TextBox(
+                    key: const Key('url_field'),
+                    controller: _urlCtrl,
+                    placeholder: s.urlPlaceholder,
+                    placeholderStyle: AppText.label(color: AppColors.textDim),
+                    style: AppText.body(color: AppColors.textPrimary),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    highlightColor: Colors.transparent,
+                    unfocusedColor: Colors.transparent,
+                    decoration:
+                        WidgetStateProperty.resolveWith<BoxDecoration>((states) {
+                      final focused = states.contains(WidgetState.focused);
+                      return BoxDecoration(
+                        color: AppColors.bgBase,
+                        borderRadius: BorderRadius.circular(AppRadius.field),
+                        border: Border.all(
+                          color: focused
+                              ? AppColors.accent
+                              : AppColors.borderInput,
+                        ),
+                      );
+                    }),
+                    prefix: const Padding(
+                      padding: EdgeInsets.only(left: 16, right: 12),
+                      child: Icon(FluentIcons.globe,
+                          size: 17, color: AppColors.textMuted),
+                    ),
+                    suffix: _hasText
+                        ? Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: IconButton(
+                              icon: const Icon(FluentIcons.clear, size: 12),
+                              onPressed: _urlCtrl.clear,
+                              style: const ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll(Colors.transparent),
+                              ),
+                            ),
+                          )
+                        : null,
+                    onSubmitted: (_) => _analyze(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              PrimaryButton(
                 key: const Key('analyze_button'),
+                label: analyzing ? s.analyzing : s.analyze,
+                icon: FluentIcons.lightbulb,
+                width: 130,
+                height: AppSize.input,
                 onPressed: analyzing ? null : _analyze,
-                child: Text(analyzing ? s.analyzing : s.analyze),
               ),
-            ]),
-            const SizedBox(height: 8),
-            Text(
-              s.downloadCookieHint,
-              style: TextStyle(
-                fontSize: 12,
-                color: FluentTheme.of(context).typography.body?.color
-                    ?.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _analysisView(analysis),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(s.taskList),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, i) => _taskRow(tasks[i]),
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _statusLine(analysis),
+        ],
       ),
     );
   }
 
-  Widget _analysisView(AnalysisState analysis) {
-    if (analysis is AnalysisIdle) return const SizedBox.shrink();
-    if (analysis is AnalysisLoading) return const ProgressBar();
-    if (analysis is AnalysisError) {
-      return InfoBar(
-          severity: InfoBarSeverity.warning,
-          title: ErrorMessage(kind: analysis.kind, detail: analysis.message));
-    }
+  Widget _statusLine(AnalysisState analysis) {
     final s = S.of(context);
-    if (analysis is AnalysisPlaylist) {
-      // Flexible 而非 Expanded：与任务列表共享剩余空间，条目多时列表内部滚动
-      return Flexible(child: _playlistView(analysis.meta));
+    final Widget content;
+    Color color = AppColors.textSecondary;
+    IconData icon = FluentIcons.info;
+    switch (analysis) {
+      case AnalysisIdle():
+        content = Text(s.parseHint, style: AppText.meta());
+      case AnalysisLoading():
+        content =
+            Text(s.analyzing, style: AppText.meta(color: AppColors.accent));
+        color = AppColors.accent;
+        icon = FluentIcons.sync;
+      case AnalysisError():
+        // 错误文案统一走 ErrorMessage：core 本地化友好文案，raw 仅作弱化副行。
+        // 全页仅此一处渲染，避免同一 raw 文案在树上出现多次。
+        content = ErrorMessage(kind: analysis.kind, detail: analysis.message);
+        color = AppColors.danger;
+        icon = FluentIcons.error;
+      case AnalysisVideo():
+      case AnalysisPlaylist():
+        content = Text(s.parseSuccess,
+            style: AppText.meta(color: AppColors.successText));
+        color = AppColors.success;
+        icon = FluentIcons.check_mark;
     }
-    final video = (analysis as AnalysisVideo).meta;
-    return Card(
-      child: Row(children: [
-        SizedBox(
-          width: 120,
-          height: 68,
-          child: video.thumbnailUrl == null
-              ? const Center(child: Icon(FluentIcons.video))
-              : Image.network(video.thumbnailUrl!, fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) =>
-                      const Center(child: Icon(FluentIcons.video))),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(icon, size: 14, color: color),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(video.title.isEmpty ? s.unknownTitle : video.title,
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text(
-                  '${video.uploader ?? s.unknownUploader} · ${s.durationSeconds(video.durationSec ?? 0)}'),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        ComboBox<QualityPreset>(
-          value: _preset,
-          items: [
-            for (final p in QualityPreset.values)
-              ComboBoxItem(value: p, child: Text(presetLabel(context, p))),
-          ],
-          onChanged: (v) => setState(() => _preset = v ?? _preset),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
-          key: const Key('enqueue_button'),
-          onPressed: _enqueue,
-          child: Text(s.addToDownload),
-        ),
-      ]),
+        const SizedBox(width: 6),
+        Expanded(child: content),
+      ],
     );
   }
 
-  Widget _playlistView(PlaylistMeta meta) {
+  // ——— 单视频预览卡 ———
+
+  Widget _previewCard(VideoMeta video) {
+    final s = S.of(context);
+    final duration = formatClock(video.durationSec ?? 0);
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: AppColors.borderSoft)),
+            ),
+            child: Row(
+              children: [
+                const StatusDot(color: AppColors.success, size: 8),
+                const SizedBox(width: 8),
+                Text(s.parseReady, style: AppText.label(
+                    color: AppColors.textBody, weight: FontWeight.w600)),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(s.readyBadge,
+                      style: AppText.chip(
+                          color: AppColors.successText,
+                          weight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: LayoutBuilder(builder: (context, c) {
+              final wide = c.maxWidth >= 560;
+              final thumb = _thumbnail(video, wide);
+              final info = _previewInfo(video, duration);
+              if (wide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    thumb,
+                    const SizedBox(width: 20),
+                    Expanded(child: info),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [thumb, const SizedBox(height: 16), info],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _thumbnail(VideoMeta video, bool wide) {
+    final s = S.of(context);
+    return Container(
+      width: wide ? 220 : double.infinity,
+      height: wide ? 124 : 150,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.field),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1F3A44), Color(0xFF0F172A), Color(0xFF0B1120)],
+        ),
+      ),
+      child: video.thumbnailUrl == null
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(FluentIcons.play, size: 34, color: AppColors.accent),
+                const SizedBox(height: 8),
+                Text(s.previewPlaceholder, style: AppText.meta(
+                    color: const Color(0xFF9FD9E6))),
+              ],
+            )
+          : Image.network(
+              video.thumbnailUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const Center(
+                child: Icon(FluentIcons.play, size: 34, color: AppColors.accent),
+              ),
+            ),
+    );
+  }
+
+  Widget _previewInfo(VideoMeta video, String duration) {
+    final s = S.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          video.title.isEmpty ? s.unknownTitle : video.title,
+          style: AppText.section(),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          s.videoMeta(video.uploader ?? s.unknownUploader, duration),
+          style: AppText.meta(),
+        ),
+        const SizedBox(height: 20),
+        Text(s.qualityLabel, style: AppText.meta()),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final p in QualityPreset.values)
+              QualityChip(
+                label: presetLabel(context, p),
+                selected: p == _preset,
+                onTap: () => setState(() => _preset = p),
+              ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PrimaryButton(
+            key: const Key('enqueue_button'),
+            label: s.addToDownload,
+            icon: FluentIcons.download,
+            onPressed: _enqueue,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ——— 播放列表 ———
+
+  Widget _playlistCard(PlaylistMeta meta) {
     final s = S.of(context);
     final selected = _selectedUrls ?? _allUrls(meta);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InfoBar(
-            severity: InfoBarSeverity.info,
-            title: Text(s.playlistNotice(meta.title ?? '', meta.entries.length))),
-        const SizedBox(height: 8),
-        // 高度自适应：空间充裕时长到 420，紧张时收缩并在列表内滚动
-        Flexible(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 420),
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const IconTile(
+                  icon: FluentIcons.video,
+                  size: 32,
+                  iconSize: 16,
+                  radius: 6),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  s.playlistNotice(meta.title ?? '', meta.entries.length),
+                  style: AppText.label(
+                      color: AppColors.textBody, weight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 列表高度有界：外层整页可滚动，条目多时列表内部滚动
+          SizedBox(
+            height: 300,
             child: ListView.builder(
               key: const Key('entry_list'),
               itemCount: meta.entries.length,
               itemBuilder: (context, i) {
                 final e = meta.entries[i];
-                return Card(
-                  child: Row(children: [
-                    Checkbox(
-                      key: Key('check_${e.url}'),
-                      checked: selected.contains(e.url),
-                      onChanged: (v) => _toggleEntry(e.url, v ?? false),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        e.titleIsFallback
-                            ? s.episodeNumber(i + 1)
-                            : e.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (e.durationSec != null) ...[
-                      const SizedBox(width: 8),
-                      Text(s.durationSeconds(e.durationSec!)),
-                    ],
-                  ]),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: _entryRow(e, i, selected.contains(e.url)),
                 );
               },
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(children: [
-          Button(
-            key: const Key('selectAll_button'),
-            onPressed: _selectAll,
-            child: Text(s.selectAll),
-          ),
-          const SizedBox(width: 8),
-          Button(
-            key: const Key('invertSelection_button'),
-            onPressed: _invertSelection,
-            child: Text(s.invertSelection),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              GhostButton(
+                key: const Key('selectAll_button'),
+                label: s.selectAll,
+                onPressed: _selectAll,
+              ),
+              const SizedBox(width: 8),
+              GhostButton(
+                key: const Key('invertSelection_button'),
+                label: s.invertSelection,
+                onPressed: _invertSelection,
+              ),
+              const Spacer(),
+              Text(
                 s.selectedCount(selected.length, meta.entries.length),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+                style: AppText.meta(),
+              ),
+              const SizedBox(width: 16),
+              PrimaryButton(
+                key: const Key('enqueue_button'),
+                label: s.addToDownload,
+                icon: FluentIcons.download,
+                onPressed: selected.isEmpty ? null : _enqueuePlaylist,
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          FilledButton(
-            key: const Key('enqueue_button'),
-            onPressed: selected.isEmpty ? null : _enqueuePlaylist,
-            child: Text(s.addToDownload),
-          ),
-        ]),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _taskRow(DownloadTask t) {
+  Widget _entryRow(PlaylistEntry e, int index, bool checked) {
     final s = S.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.bgBase,
+        borderRadius: BorderRadius.circular(AppRadius.control),
+        border: Border.all(color: AppColors.borderSoft),
+      ),
+      child: Row(
+        children: [
+          Checkbox(
+            key: Key('check_${e.url}'),
+            checked: checked,
+            onChanged: (v) => _toggleEntry(e.url, v ?? false),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              e.titleIsFallback ? s.episodeNumber(index + 1) : e.title,
+              style: AppText.label(color: AppColors.textBody),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (e.durationSec != null) ...[
+            const SizedBox(width: 10),
+            Text(formatClock(e.durationSec!), style: AppText.meta()),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ——— 任务卡 ———
+
+  Widget _taskCard(DownloadTask t) {
+    final s = S.of(context);
+    final style = _taskStyle(t);
     final canCancel =
         t.status == TaskStatus.queued || t.status == TaskStatus.downloading;
     final canRetry =
         t.status == TaskStatus.failed || t.status == TaskStatus.canceled;
-    return Card(
-      child: Row(children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconTile(icon: style.icon, color: style.color),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        t.title,
+                        style: AppText.label(
+                            color: AppColors.textPrimary,
+                            weight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(style.trailing(context, t),
+                        style: AppText.label(
+                            color: style.color, weight: FontWeight.w600)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _taskMeta(t),
+                const SizedBox(height: 12),
+                AppProgressBar(
+                  value: style.progress(t),
+                  color: style.color,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 4),
-              _statusLine(t),
+              if (canCancel)
+                _IconAction(
+                  key: Key('cancel_${t.id}'),
+                  icon: FluentIcons.cancel,
+                  tooltip: s.cancel,
+                  onPressed: () => unawaited(ref
+                      .read(downloadQueueProvider.notifier)
+                      .cancel(t.id)),
+                ),
+              if (canRetry)
+                _IconAction(
+                  key: Key('retry_${t.id}'),
+                  icon: FluentIcons.redo,
+                  tooltip: s.retry,
+                  onPressed: () =>
+                      ref.read(downloadQueueProvider.notifier).retry(t.id),
+                ),
+              if (t.status == TaskStatus.completed)
+                _IconAction(
+                  key: Key('open_${t.id}'),
+                  icon: FluentIcons.folder_open,
+                  tooltip: s.openFolder,
+                  onPressed: () => unawaited(ref
+                      .read(downloadQueueProvider.notifier)
+                      .openFolder(t.id)),
+                ),
             ],
           ),
-        ),
-        if (canCancel)
-          Button(
-            key: Key('cancel_${t.id}'),
-            onPressed: () =>
-                unawaited(ref.read(downloadQueueProvider.notifier).cancel(t.id)),
-            child: Text(s.cancel),
-          ),
-        if (canRetry)
-          Button(
-            key: Key('retry_${t.id}'),
-            onPressed: () => ref.read(downloadQueueProvider.notifier).retry(t.id),
-            child: Text(s.retry),
-          ),
-        if (t.status == TaskStatus.completed)
-          Button(
-            key: Key('open_${t.id}'),
-            onPressed: () => unawaited(
-                ref.read(downloadQueueProvider.notifier).openFolder(t.id)),
-            child: Text(s.openFolder),
-          ),
-      ]),
+        ],
+      ),
     );
   }
 
-  Widget _statusLine(DownloadTask t) {
+  /// 元信息行：画质 + 速度/剩余（下载中）、输出路径（完成）、错误原因（失败）。
+  /// 状态文案统一由右上角的 [trailing] 承担，此处不再重复，避免同一文案在树上
+  /// 出现两次（`find.text` 会因此报 multiple widgets）。
+  Widget _taskMeta(DownloadTask t) {
     final s = S.of(context);
+    final p = t.progress;
     switch (t.status) {
       case TaskStatus.queued:
-        return Text(s.statusQueued);
+      case TaskStatus.canceling:
+      case TaskStatus.canceled:
+        return Text(presetLabel(context, t.preset), style: AppText.meta());
       case TaskStatus.downloading:
-        final p = t.progress;
-        final speed = p?.speed;
+        final parts = <String>[presetLabel(context, t.preset)];
         final eta = p?.etaSeconds;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        final speed = p?.speed;
+        if (eta != null) parts.add(s.etaLabel(eta));
+        if (speed != null) parts.add(speed);
+        return Text(parts.join(' · '),
+            style: AppText.meta(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
+      case TaskStatus.completed:
+        return Text('${presetLabel(context, t.preset)} · ${s.statusDone(t.filePath ?? '')}',
+            style: AppText.meta(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis);
+      case TaskStatus.failed:
+        return Row(
           children: [
-            ProgressBar(value: (p?.fraction ?? 0) * 100),
-            const SizedBox(height: 2),
-            Text(p == null
-                ? s.statusDownloading
-                : '${(p.fraction * 100).toStringAsFixed(1)}%'
-                    '${speed != null ? '  ${s.speedLabel} $speed' : ''}'
-                    '${eta != null ? '  ${s.etaLabel(eta)}' : ''}'),
+            Text('${presetLabel(context, t.preset)} · ',
+                style: AppText.meta()),
+            Expanded(
+              child: ErrorMessage(
+                kind: t.errorKind ?? EngineErrorKind.unknown,
+                detail: t.errorDetail ?? '',
+              ),
+            ),
           ],
         );
-      case TaskStatus.canceling:
-        return Text(s.statusCanceling);
-      case TaskStatus.completed:
-        return Text(s.statusDone(t.filePath ?? ''));
-      case TaskStatus.failed:
-        return ErrorMessage(
-            kind: t.errorKind ?? EngineErrorKind.unknown,
-            detail: t.errorDetail ?? '');
-      case TaskStatus.canceled:
-        return Text(s.statusCanceled);
     }
   }
 
+  _TaskStyle _taskStyle(DownloadTask t) => switch (t.status) {
+        TaskStatus.queued => _TaskStyle(
+            icon: FluentIcons.history,
+            color: AppColors.textMuted,
+            progress: (_) => 0,
+            trailing: (context, _) => S.of(context).statusQueued,
+          ),
+        TaskStatus.downloading => _TaskStyle(
+            icon: FluentIcons.video,
+            color: AppColors.accent,
+            progress: (task) => task.progress?.fraction ?? 0,
+            trailing: (context, task) =>
+                '${((task.progress?.fraction ?? 0) * 100).toStringAsFixed(1)}%',
+          ),
+        TaskStatus.canceling => _TaskStyle(
+            icon: FluentIcons.video,
+            color: AppColors.textMuted,
+            progress: (task) => task.progress?.fraction ?? 0,
+            trailing: (context, _) => S.of(context).statusCanceling,
+          ),
+        TaskStatus.completed => _TaskStyle(
+            icon: FluentIcons.check_mark,
+            color: AppColors.success,
+            progress: (_) => 1,
+            trailing: (context, _) => S.of(context).statusCompleted,
+          ),
+        TaskStatus.failed => _TaskStyle(
+            icon: FluentIcons.error,
+            color: AppColors.danger,
+            progress: (_) => 0,
+            trailing: (context, _) => S.of(context).statusFailed,
+          ),
+        TaskStatus.canceled => _TaskStyle(
+            icon: FluentIcons.cancel,
+            color: AppColors.textMuted,
+            progress: (_) => 0,
+            trailing: (context, _) => S.of(context).statusCanceled,
+          ),
+      };
+
   @override
   void dispose() {
+    _urlCtrl.removeListener(_onUrlChanged);
     _urlCtrl.dispose();
     super.dispose();
   }
+}
+
+/// 任务行的图标 / 主色 / 进度 / 右上状态文案。
+class _TaskStyle {
+  const _TaskStyle({
+    required this.icon,
+    required this.color,
+    required this.progress,
+    required this.trailing,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double Function(DownloadTask) progress;
+  final String Function(BuildContext, DownloadTask) trailing;
+}
+
+/// 任务行右侧的纯图标操作按钮（取消 / 重试 / 打开文件夹）。
+class _IconAction extends StatelessWidget {
+  const _IconAction({
+    required Key key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  }) : super(key: key);
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: IconButton(
+          icon: Icon(icon, size: 17, color: AppColors.textMuted),
+          onPressed: onPressed,
+          style: const ButtonStyle(
+            backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+          ),
+        ),
+      );
 }
