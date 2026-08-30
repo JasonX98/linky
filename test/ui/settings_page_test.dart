@@ -1,0 +1,242 @@
+// test/ui/settings_page_test.dart
+import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_downloader/core/providers.dart';
+import 'package:video_downloader/features/download/providers.dart';
+import 'package:video_downloader/features/settings/providers.dart';
+import 'package:video_downloader/features/settings/settings_page.dart';
+import 'package:video_downloader/engine/engine_update.dart';
+import 'package:video_downloader/engine/models.dart';
+import 'package:video_downloader/features/download/queue_controller.dart';
+import 'package:video_downloader/features/download/download_task.dart';
+import 'package:video_downloader/l10n/app_localizations.dart';
+
+/// 仅用于测试：覆写 hasActive，不依赖真实队列状态。
+class _FakeQueue extends DownloadQueueController {
+  _FakeQueue(this._active);
+  final bool _active;
+  @override
+  bool get hasActive => _active;
+  @override
+  List<DownloadTask> build() => const [];
+}
+
+/// 仅用于测试：完全覆写四个检查/应用方法，避免真实 locator/launcher/zip 文件 I/O。
+/// 通过 `ytUpdate`/`ffUpdate` 控制是否报告更新，`ytApplyError`/`ffApplyError` 触发失败。
+class _PageService extends EngineUpdateService {
+  _PageService({this.ytUpdate, this.ffUpdate, this.ytApplyError});
+
+  final String? ytUpdate;
+  final String? ffUpdate;
+  final DownloadException? ytApplyError;
+
+  @override
+  Future<EngineVersion?> checkForUpdate() async =>
+      ytUpdate == null ? null : EngineVersion.tryParse(ytUpdate!);
+  @override
+  Future<void> applyUpdate(EngineVersion v) async {
+    if (ytApplyError != null) throw ytApplyError!;
+  }
+
+  @override
+  Future<EngineVersion?> checkFfmpegUpdate() async =>
+      ffUpdate == null ? null : EngineVersion.tryParse(ffUpdate!);
+  @override
+  Future<void> applyFfmpegUpdate(EngineVersion v) async {}
+}
+
+late SharedPreferences prefs;
+Future<String?> Function()? picker;
+Future<String?> Function()? cookiePicker;
+
+// locale 必须由 settingsProvider 驱动（与 App 相同的接线），
+// SettingsPage 作为 home 直接挂载，避免拖入下载/历史页的依赖
+class _LocaleHost extends ConsumerWidget {
+  const _LocaleHost();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(settingsProvider).language;
+    return FluentApp(
+      locale: Locale(lang),
+      localizationsDelegates: S.localizationsDelegates,
+      supportedLocales: S.supportedLocales,
+      home: SettingsPage(
+        directoryPicker: picker,
+        cookieFilePicker: cookiePicker,
+      ),
+    );
+  }
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    // 固定 zh，避免依赖宿主系统 locale
+    SharedPreferences.setMockInitialValues({'language': 'zh'});
+    prefs = await SharedPreferences.getInstance();
+    picker = null;
+    cookiePicker = null;
+  });
+
+  Widget host() => ProviderScope(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          engineVersionsProvider.overrideWith(
+              (ref) async => (ytDlp: '2026.08.19', ffmpeg: '7.0.0')),
+        ],
+        child: const _LocaleHost(),
+      );
+
+  Widget hostWith({
+    required EngineUpdateService engineService,
+    bool queueActive = false,
+  }) =>
+      ProviderScope(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          engineVersionsProvider.overrideWith(
+              (ref) async => (ytDlp: '2026.08.19', ffmpeg: '7.0.0')),
+          engineServiceProvider.overrideWithValue(engineService),
+          downloadQueueProvider.overrideWith(() => _FakeQueue(queueActive)),
+        ],
+        child: const _LocaleHost(),
+      );
+
+  testWidgets('browse picks directory, updates text and persists', (tester) async {
+    picker = () async => r'D:\X';
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    // 未设置目录时显示系统下载文件夹占位
+    expect(find.text('系统下载文件夹'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('browse_button')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'D:\X'), findsOneWidget);
+    expect(find.text('系统下载文件夹'), findsNothing);
+    // pumpAndSettle 已排空 mock prefs 的写入微任务
+    expect(prefs.getString('downloadDir'), r'D:\X');
+  });
+
+  testWidgets('slider tap updates concurrency text', (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    // 默认并发 3
+    expect(find.text('3'), findsOneWidget);
+
+    // 点击滑条最右端刻度 → 5（divisions=4，值 1..5）
+    final slider = find.byKey(const Key('concurrency_slider'));
+    final center = tester.getCenter(slider);
+    final size = tester.getSize(slider);
+    await tester.tapAt(Offset(center.dx + size.width / 2 - 1, center.dy));
+    await tester.pumpAndSettle();
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('3'), findsNothing);
+  });
+
+  testWidgets('language combo switches UI to english instantly', (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    expect(find.text('下载目录'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('language_combo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+
+    // 本页文案即时变英文，无需重启
+    expect(find.text('Download directory'), findsOneWidget);
+    expect(find.text('下载目录'), findsNothing);
+    expect(find.text('Concurrent downloads'), findsOneWidget);
+  });
+
+  testWidgets('about section shows yt-dlp and ffmpeg versions and disclaimer',
+      (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('关于'), findsOneWidget);
+    expect(find.text('yt-dlp 版本: 2026.08.19'), findsOneWidget);
+    expect(find.textContaining('仅供个人学习'), findsWidgets);
+  });
+
+  testWidgets('check update shows up-to-date status', (tester) async {
+    final service = _PageService();
+    await tester.pumpWidget(hostWith(engineService: service));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('check_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('已是最新版本'), findsOneWidget);
+  });
+
+  testWidgets('check update shows updated status per component', (tester) async {
+    final service = _PageService(ytUpdate: '2026.09.01');
+    await tester.pumpWidget(hostWith(engineService: service));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('check_update_button')));
+    // 注：检查过程很快，进行中态（“检查中…”+按钮禁用）不易稳定捕获，
+    // 此处验证最终态：状态文案与按钮恢复可点击。
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+    expect(find.text('yt-dlp 已更新到 2026.09.01'), findsOneWidget);
+    final btn2 = tester.widget<Button>(find.byKey(const Key('check_update_button')));
+    expect(btn2.onPressed, isNotNull);
+  });
+
+  testWidgets('check update shows busy per component when download active',
+      (tester) async {
+    final service = _PageService(ytUpdate: '2026.09.01', ffUpdate: '9.0.1');
+    await tester.pumpWidget(hostWith(engineService: service, queueActive: true));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('check_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('yt-dlp：请先停止下载任务后再更新'), findsOneWidget);
+    expect(find.textContaining('ffmpeg：请先停止下载任务后再更新'), findsOneWidget);
+  });
+
+  testWidgets('check update shows failure detail on error', (tester) async {
+    final service = _PageService(
+      ytUpdate: '2026.09.01',
+      ytApplyError: const DownloadException(EngineErrorKind.network, 'HTTP 500'),
+    );
+    await tester.pumpWidget(hostWith(engineService: service));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('check_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('更新失败'), findsOneWidget);
+    expect(find.textContaining('HTTP 500'), findsOneWidget);
+  });
+
+  testWidgets('cookie file row picks, persists and clears', (tester) async {
+    // 必须先设置 picker 再 pump：_LocaleHost 在 build 时捕获 cookieFilePicker
+    cookiePicker = () async => r'C:\cookies\net.txt';
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    // 未设置时显示占位
+    expect(find.text('未设置'), findsOneWidget);
+    expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
+
+    // 选择 cookie 文件 → 显示路径 + 出现清除按钮 + 写入 prefs
+    await tester.tap(find.byKey(const Key('cookie_file_button')));
+    await tester.pumpAndSettle();
+    expect(find.text(r'C:\cookies\net.txt'), findsOneWidget);
+    expect(find.text('未设置'), findsNothing);
+    expect(find.byKey(const Key('clear_cookie_button')), findsOneWidget);
+    expect(prefs.getString('cookieFile'), r'C:\cookies\net.txt');
+
+    // 清除 → 回到占位 + 清空 prefs
+    await tester.tap(find.byKey(const Key('clear_cookie_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('未设置'), findsOneWidget);
+    expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
+    expect(prefs.getString('cookieFile'), isNull);
+  });
+}
