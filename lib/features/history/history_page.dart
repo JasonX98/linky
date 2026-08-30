@@ -342,18 +342,21 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                             'explorer.exe', [p.dirname(row.filePath!)])
                         .then((_) {}, onError: (_) {})),
                   ),
+                // 重试按钮：仅失败/取消状态可点击，已完成置灰
                 _RowAction(
                   key: Key('redownload_${row.id}'),
                   icon: FluentIcons.redo,
                   tooltip: s.retry,
-                  onPressed: () => unawaited(ref
-                      .read(downloadQueueProvider.notifier)
-                      .enqueue(
-                          url: row.url,
-                          title: row.title,
-                          preset: QualityPreset.values.firstWhere(
-                              (q) => q.name == row.formatLabel,
-                              orElse: () => QualityPreset.best))),
+                  onPressed: (row.status == 'failed' || row.status == 'canceled')
+                      ? () => unawaited(ref
+                          .read(downloadQueueProvider.notifier)
+                          .enqueue(
+                              url: row.url,
+                              title: row.title,
+                              preset: QualityPreset.values.firstWhere(
+                                  (q) => q.name == row.formatLabel,
+                                  orElse: () => QualityPreset.best)))
+                      : null,
                 ),
                 _RowAction(
                   key: Key('delete_${row.id}'),
@@ -400,19 +403,19 @@ class _StatusStyle {
   final String Function(S) label;
 }
 
-/// 行内图标操作按钮。原型风格：纯文字色图标，无背景无边框，
+/// 行内图标操作按钮。原型风格：纯文字色图标（#8B9BB6），无背景无边框，
 /// hover 变白。所有操作按钮（打开文件/目录/重试/删除）共用此样式。
 class _RowAction extends StatelessWidget {
   const _RowAction({
     required Key key,
     required this.icon,
     required this.tooltip,
-    required this.onPressed,
+    this.onPressed,
   }) : super(key: key);
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -424,10 +427,13 @@ class _RowAction extends StatelessWidget {
             backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
             foregroundColor:
                 WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.hovered)) {
-                return AppColors.textPrimary;
+              if (states.contains(WidgetState.disabled)) {
+                return AppColors.textDim;
               }
-              return AppColors.textMuted;
+              if (states.contains(WidgetState.hovered)) {
+                return Colors.white;
+              }
+              return AppColors.textAction;
             }),
             padding: const WidgetStatePropertyAll(
                 EdgeInsets.all(6)),

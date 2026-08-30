@@ -184,6 +184,38 @@ void main() {
     expect(find.byKey(const Key('delete_2')), findsOneWidget);
   });
 
+  testWidgets(
+      'completed row retry button is disabled; failed row retry works',
+      (tester) async {
+    await tester.pumpWidget(wrap([completed, failed]));
+    await tester.pumpAndSettle();
+
+    // 已完成行（id=1）的重试按钮存在但禁用：tap 不应入队
+    expect(find.byKey(const Key('redownload_1')), findsOneWidget);
+    final containerBefore = ProviderScope.containerOf(
+        tester.element(find.byType(HistoryPage)));
+    final countBefore =
+        containerBefore.read(downloadQueueProvider).length;
+
+    await tester.tap(find.byKey(const Key('redownload_1')));
+    await tester.pumpAndSettle();
+
+    final containerAfter = ProviderScope.containerOf(
+        tester.element(find.byType(HistoryPage)));
+    expect(containerAfter.read(downloadQueueProvider).length, countBefore,
+        reason: '已完成行重试按钮被禁用，tap 不应入队新任务');
+
+    // 失败行（id=2）的重试按钮可点击
+    await tester.tap(find.byKey(const Key('redownload_2')));
+    await tester.pumpAndSettle();
+
+    final containerAfterFailedTap = ProviderScope.containerOf(
+        tester.element(find.byType(HistoryPage)));
+    expect(containerAfterFailedTap.read(downloadQueueProvider).length,
+        countBefore + 1,
+        reason: '失败行重试按钮应正常入队');
+  });
+
   testWidgets('empty history shows placeholder', (tester) async {
     await tester.pumpWidget(wrap(const []));
     await tester.pumpAndSettle();

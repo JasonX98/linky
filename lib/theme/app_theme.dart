@@ -40,6 +40,9 @@ class AppColors {
   static const Color textSecondary = Color(0xFF94A8C4);
   static const Color textMuted = Color(0xFF7C8CA8);
   static const Color textDim = Color(0xFF5A6B85);
+
+  /// 行内操作图标默认色（对齐原型 #8B9BB6）。
+  static const Color textAction = Color(0xFF8B9BB6);
 }
 
 /// 圆角：卡片 16 / 控件 12 / 小控件 8 / 图标块 10 / 徽标全圆。
