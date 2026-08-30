@@ -99,19 +99,10 @@ class _Brand extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.tile),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF22D3EE), Color(0xFF0E7490)],
-                ),
-              ),
-              child: const Icon(FluentIcons.download,
-                  size: 18, color: AppColors.onAccent),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.tile),
+              child: Image.asset('assets/logo.png',
+                  width: 36, height: 36, fit: BoxFit.cover),
             ),
             const SizedBox(width: 12),
             Column(

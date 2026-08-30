@@ -346,16 +346,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius:
-                          BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: const Icon(FluentIcons.download,
-                        size: 28, color: AppColors.onAccent),
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.circular(AppRadius.card),
+                    child: Image.asset('assets/logo.png',
+                        width: 56, height: 56, fit: BoxFit.cover),
                   ),
                   const SizedBox(width: 16),
                   // Expanded：窄栏时让文字列收缩，否则 Row 会 RenderFlex 溢出
