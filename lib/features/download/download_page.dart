@@ -201,7 +201,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
                           message: s.noActiveTasks),
                     )
                   else
-                    for (final t in tasks)
+                    for (final t in tasks.reversed)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _taskCard(t),
