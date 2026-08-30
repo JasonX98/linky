@@ -74,6 +74,7 @@
   "updateUpdated": "{component} 已更新到 {version}",
   "updateBusy": "{component}：请先停止下载任务后再更新",
   "updateFailed": "{component} 更新失败：{detail}",
+  "updateTimeout": "检查更新超时：网络响应过慢，请检查网络后重试",
   "@updateUpdated": { "placeholders": { "component": { "type": "String" }, "version": { "type": "String" } } },
   "@updateBusy": { "placeholders": { "component": { "type": "String" } } },
   "@updateFailed": { "placeholders": { "component": { "type": "String" }, "detail": { "type": "String" } } },

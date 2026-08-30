@@ -67,6 +67,7 @@
   "updateUpdated": "{component} updated to {version}",
   "updateBusy": "{component}: stop downloads first, then update",
   "updateFailed": "{component} update failed: {detail}",
+  "updateTimeout": "Update check timed out: network is too slow, please check your connection and try again",
   "@updateUpdated": { "placeholders": { "component": { "type": "String" }, "version": { "type": "String" } } },
   "@updateBusy": { "placeholders": { "component": { "type": "String" } } },
   "@updateFailed": { "placeholders": { "component": { "type": "String" }, "detail": { "type": "String" } } },

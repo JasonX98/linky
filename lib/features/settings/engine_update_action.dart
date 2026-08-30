@@ -3,6 +3,8 @@
 // "检查更新"动作与按钮：下载页头部、设置页"关于与更新"共用同一份逻辑，
 // 避免两处各写一遍导致文案与节流行为分叉。
 
+import 'dart:async';
+
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_downloader/features/download/providers.dart';
@@ -13,14 +15,23 @@ import 'package:video_downloader/theme/widgets.dart';
 
 /// 触发一次强制检查，并把结果写入 [engineUpdateStatusProvider]。
 /// 期间 [engineUpdateCheckingProvider] 为 true（按钮禁用 + 显示"检查中…"）。
-Future<void> runEngineUpdateCheck(BuildContext context, WidgetRef ref) async {
+///
+/// 整个操作有 [timeout] 顶层超时兜底（默认 30 秒）：即使各子步骤的独立
+/// 超时均未触发，也不会永远卡在"检查中…"状态。[timeout] 参数主要供测试注入
+/// 短值以加速验证超时路径；生产调用省略即可。
+Future<void> runEngineUpdateCheck(
+  BuildContext context,
+  WidgetRef ref, {
+  Duration timeout = const Duration(seconds: 30),
+}) async {
   final s = S.of(context);
   ref.read(engineUpdateCheckingProvider.notifier).state = true;
   ref.read(engineUpdateStatusProvider.notifier).state = s.updateChecking;
   try {
     final result = await ref
         .read(settingsProvider.notifier)
-        .checkEngineUpdates(force: true);
+        .checkEngineUpdates(force: true)
+        .timeout(timeout);
     final parts = <String>[
       ..._componentFrags('yt-dlp', result.ytDlp, result.ytDlpVersion,
           result.ytDlpError, s),
@@ -29,6 +40,9 @@ Future<void> runEngineUpdateCheck(BuildContext context, WidgetRef ref) async {
     ];
     ref.read(engineUpdateStatusProvider.notifier).state =
         parts.isEmpty ? s.updateUpToDate : parts.join('\n');
+  } on TimeoutException {
+    ref
+        .read(engineUpdateStatusProvider.notifier).state = s.updateTimeout;
   } finally {
     ref.read(engineUpdateCheckingProvider.notifier).state = false;
   }

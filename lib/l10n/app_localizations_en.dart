@@ -235,6 +235,10 @@ class SEn extends S {
   }
 
   @override
+  String get updateTimeout =>
+      'Update check timed out: network is too slow, please check your connection and try again';
+
+  @override
   String get versionLabel => 'Version';
 
   @override

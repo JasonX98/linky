@@ -231,6 +231,9 @@ class SZh extends S {
   }
 
   @override
+  String get updateTimeout => '检查更新超时：网络响应过慢，请检查网络后重试';
+
+  @override
   String get versionLabel => '版本';
 
   @override

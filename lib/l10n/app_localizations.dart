@@ -493,6 +493,12 @@ abstract class S {
   /// **'{component} 更新失败：{detail}'**
   String updateFailed(String component, String detail);
 
+  /// No description provided for @updateTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新超时：网络响应过慢，请检查网络后重试'**
+  String get updateTimeout;
+
   /// No description provided for @versionLabel.
   ///
   /// In zh, this message translates to:

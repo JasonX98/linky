@@ -310,6 +310,33 @@ void main() {
     expect(find.textContaining('HTTP 500'), findsOneWidget);
   });
 
+  testWidgets('check update timeout i18n keys exist and are non-empty',
+      (tester) async {
+    // 用一个最小 localized widget 树加载 S，验证超时文案键可用
+    await tester.pumpWidget(FluentApp(
+      locale: const Locale('zh'),
+      localizationsDelegates: S.localizationsDelegates,
+      supportedLocales: S.supportedLocales,
+      home: const SizedBox.shrink(),
+    ));
+    await tester.pumpAndSettle();
+    final s = S.of(tester.element(find.byType(SizedBox)));
+    expect(s.updateTimeout, isNotEmpty);
+    expect(s.updateTimeout, contains('超时'));
+
+    // 切英文验证
+    await tester.pumpWidget(FluentApp(
+      locale: const Locale('en'),
+      localizationsDelegates: S.localizationsDelegates,
+      supportedLocales: S.supportedLocales,
+      home: const SizedBox.shrink(),
+    ));
+    await tester.pumpAndSettle();
+    final sEn = S.of(tester.element(find.byType(SizedBox)));
+    expect(sEn.updateTimeout, isNotEmpty);
+    expect(sEn.updateTimeout, contains('timed out'));
+  });
+
   testWidgets('cookie file row picks, persists and clears', (tester) async {
     // 必须先设置 picker 再 pump：_LocaleHost 在 build 时捕获 cookieFilePicker
     cookiePicker = () async => r'C:\cookies\net.txt';
