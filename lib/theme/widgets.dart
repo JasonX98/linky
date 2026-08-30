@@ -680,3 +680,81 @@ class SegmentedPicker<T> extends StatelessWidget {
         ),
       );
 }
+
+/// Lucide 风格的「打开文件夹」图标（folder-open）。
+///
+/// 与原型 HTML 中 `icon="lucide:folder-open"` 视觉一致：
+/// 圆角描边风格，前侧翻盖打开形态。
+/// 用法替代此前的 [FluentIcons.folder_open]。
+class FolderOpenIcon extends StatelessWidget {
+  const FolderOpenIcon({
+    super.key,
+    this.size = 17,
+    this.color = const Color(0xFF94A3B8),
+  });
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _FolderOpenPainter(color),
+          size: Size(size, size),
+        ),
+      );
+}
+
+class _FolderOpenPainter extends CustomPainter {
+  _FolderOpenPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final scale = size.width / 24.0;
+    canvas.save();
+    canvas.scale(scale);
+
+    // 后层（翻盖）
+    final back = Path()
+      ..moveTo(2, 10)
+      ..lineTo(3.45, 5.64)
+      ..cubicTo(3.79, 4.68, 4.54, 4.0, 5.35, 4.0)
+      ..lineTo(10.0, 4.0)
+      ..lineTo(12.0, 8.0)
+      ..lineTo(19.15, 8.0)
+      ..cubicTo(19.96, 8.0, 20.71, 8.68, 21.05, 9.57)
+      ..lineTo(22.0, 13.0);
+    canvas.drawPath(back, paint);
+
+    // 前层（主体文件夹）
+    final front = Path()
+      ..moveTo(6.0, 14.0)
+      ..lineTo(7.45, 9.64)
+      ..cubicTo(7.79, 8.68, 8.54, 8.0, 9.35, 8.0)
+      ..lineTo(18.5, 8.0)
+      ..cubicTo(19.31, 8.0, 20.06, 8.69, 20.4, 9.57)
+      ..lineTo(21.85, 14.0)
+      ..cubicTo(22.23, 15.15, 21.47, 16.28, 20.35, 16.72)
+      ..lineTo(18.95, 17.29)
+      ..cubicTo(18.37, 17.52, 17.73, 17.61, 17.1, 17.55)
+      ..lineTo(8.05, 16.55)
+      ..cubicTo(7.08, 16.46, 6.25, 15.87, 5.85, 15.0)
+      ..close();
+    canvas.drawPath(front, paint);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_FolderOpenPainter old) => old.color != color;
+}

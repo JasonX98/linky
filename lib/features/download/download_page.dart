@@ -382,7 +382,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
         children: [
           Row(
             children: [
-              Icon(FluentIcons.folder_open, size: 13, color: AppColors.accent),
+              FolderOpenIcon(size: 13, color: AppColors.accent),
               const SizedBox(width: 8),
               // 标题必须可收缩：窄窗（560px）下徽标要留位置，否则整行溢出
               Expanded(
@@ -783,7 +783,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
               if (canCancel)
                 _IconAction(
                   key: Key('cancel_${t.id}'),
-                  icon: FluentIcons.cancel,
+                  icon: Icon(FluentIcons.cancel, size: 17, color: AppColors.textMuted),
                   tooltip: s.cancel,
                   onPressed: () => unawaited(ref
                       .read(downloadQueueProvider.notifier)
@@ -792,7 +792,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
               if (canRetry)
                 _IconAction(
                   key: Key('retry_${t.id}'),
-                  icon: FluentIcons.redo,
+                  icon: Icon(FluentIcons.redo, size: 17, color: AppColors.textMuted),
                   tooltip: s.retry,
                   onPressed: () =>
                       ref.read(downloadQueueProvider.notifier).retry(t.id),
@@ -800,7 +800,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
               if (t.status == TaskStatus.completed)
                 _IconAction(
                   key: Key('open_${t.id}'),
-                  icon: FluentIcons.folder_open,
+                  icon: const FolderOpenIcon(size: 17),
                   tooltip: s.openFolder,
                   onPressed: () => unawaited(ref
                       .read(downloadQueueProvider.notifier)
@@ -809,7 +809,7 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
               // 删除按钮：所有非活动状态可点，下载中/取消中禁用
               _IconAction(
                 key: Key('delete_${t.id}'),
-                icon: FluentIcons.delete,
+                icon: Icon(FluentIcons.delete, size: 17, color: AppColors.textMuted),
                 tooltip: s.delete,
                 onPressed: canDelete
                     ? () => ref.read(downloadQueueProvider.notifier).remove(t.id)
@@ -937,7 +937,7 @@ class _IconAction extends StatelessWidget {
     this.onPressed,
   }) : super(key: key);
 
-  final IconData icon;
+  final Widget icon;
   final String tooltip;
   final VoidCallback? onPressed;
 
@@ -945,7 +945,7 @@ class _IconAction extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: IconButton(
-          icon: Icon(icon, size: 17, color: AppColors.textMuted),
+          icon: icon,
           onPressed: onPressed,
           style: ButtonStyle(
             backgroundColor: const WidgetStatePropertyAll(Colors.transparent),

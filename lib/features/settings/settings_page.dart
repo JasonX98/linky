@@ -87,7 +87,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                             _SectionTab(
                               key: const Key('section_general_tab'),
-                              icon: FluentIcons.settings,
+                              icon: Icon(FluentIcons.settings, size: 15,
+                                  color: _section == SettingsSection.general
+                                      ? AppColors.accent
+                                      : AppColors.textSecondary),
                               label: s.sectionGeneral,
                               selected: _section == SettingsSection.general,
                               onTap: () =>
@@ -95,7 +98,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                             _SectionTab(
                               key: const Key('section_download_tab'),
-                              icon: FluentIcons.folder_open,
+                              icon: const FolderOpenIcon(size: 15),
                               label: s.sectionDownload,
                               selected: _section == SettingsSection.download,
                               onTap: () => setState(
@@ -103,7 +106,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             ),
                             _SectionTab(
                               key: const Key('section_about_tab'),
-                              icon: FluentIcons.info,
+                              icon: Icon(FluentIcons.info, size: 15,
+                                  color: _section == SettingsSection.about
+                                      ? AppColors.accent
+                                      : AppColors.textSecondary),
                               label: s.sectionAbout,
                               selected: _section == SettingsSection.about,
                               onTap: () =>
@@ -500,7 +506,7 @@ class _SectionTab extends StatefulWidget {
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -539,9 +545,7 @@ class _SectionTabState extends State<_SectionTab> {
           ),
           child: Row(
             children: [
-              Icon(widget.icon,
-                  size: 15,
-                  color: selected ? AppColors.accent : AppColors.textSecondary),
+              widget.icon,
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

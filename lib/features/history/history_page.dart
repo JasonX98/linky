@@ -327,7 +327,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 if (hasFile)
                   _RowAction(
                     key: Key('open_file_${row.id}'),
-                    icon: FluentIcons.document,
+                    icon: Icon(FluentIcons.document, size: 16),
                     tooltip: s.openFile,
                     onPressed: () => unawaited(Process.run(
                             'explorer.exe', [row.filePath!])
@@ -336,7 +336,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 if (hasFile)
                   _RowAction(
                     key: Key('open_dir_${row.id}'),
-                    icon: FluentIcons.folder_open,
+                    icon: const FolderOpenIcon(size: 16),
                     tooltip: s.openFolder,
                     onPressed: () => unawaited(Process.run(
                             'explorer.exe', [p.dirname(row.filePath!)])
@@ -346,7 +346,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 // 图标用 refresh（逆时针循环箭头），对齐原型 lucide:rotate-ccw
                 _RowAction(
                   key: Key('redownload_${row.id}'),
-                  icon: FluentIcons.refresh,
+                  icon: Icon(FluentIcons.refresh, size: 16),
                   tooltip: s.retry,
                   onPressed: (row.status == 'failed' || row.status == 'canceled')
                       ? () => unawaited(ref
@@ -361,7 +361,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                 ),
                 _RowAction(
                   key: Key('delete_${row.id}'),
-                  icon: FluentIcons.delete,
+                  icon: Icon(FluentIcons.delete, size: 16),
                   tooltip: s.delete,
                   onPressed: () => unawaited(ref
                       .read(historyRepositoryProvider)
@@ -414,7 +414,7 @@ class _RowAction extends StatelessWidget {
     this.onPressed,
   }) : super(key: key);
 
-  final IconData icon;
+  final Widget icon;
   final String tooltip;
   final VoidCallback? onPressed;
 
@@ -422,7 +422,7 @@ class _RowAction extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
         message: tooltip,
         child: IconButton(
-          icon: Icon(icon, size: 16),
+          icon: icon,
           onPressed: onPressed,
           style: ButtonStyle(
             backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
