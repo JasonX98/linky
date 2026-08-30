@@ -606,6 +606,9 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
         t.status == TaskStatus.queued || t.status == TaskStatus.downloading;
     final canRetry =
         t.status == TaskStatus.failed || t.status == TaskStatus.canceled;
+    // 正在下载/取消中的任务不允许删除（防止丢进度）
+    final canDelete = t.status != TaskStatus.downloading &&
+        t.status != TaskStatus.canceling;
     return AppCard(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -675,6 +678,15 @@ class _DownloadPageState extends ConsumerState<DownloadPage> {
                       .read(downloadQueueProvider.notifier)
                       .openFolder(t.id)),
                 ),
+              // 删除按钮：所有非活动状态可点，下载中/取消中禁用
+              _IconAction(
+                key: Key('delete_${t.id}'),
+                icon: FluentIcons.delete,
+                tooltip: s.delete,
+                onPressed: canDelete
+                    ? () => ref.read(downloadQueueProvider.notifier).remove(t.id)
+                    : null,
+              ),
             ],
           ),
         ],
@@ -787,18 +799,19 @@ class _TaskStyle {
   final String Function(BuildContext, DownloadTask) trailing;
 }
 
-/// 任务行右侧的纯图标操作按钮（取消 / 重试 / 打开文件夹）。
+/// 任务行右侧的纯图标操作按钮（取消 / 重试 / 打开文件夹 / 删除）。
+/// [onPressed] 为 null 时按钮禁用（用于下载中不可删除的场景）。
 class _IconAction extends StatelessWidget {
   const _IconAction({
     required Key key,
     required this.icon,
     required this.tooltip,
-    required this.onPressed,
+    this.onPressed,
   }) : super(key: key);
 
   final IconData icon;
   final String tooltip;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -806,8 +819,14 @@ class _IconAction extends StatelessWidget {
         child: IconButton(
           icon: Icon(icon, size: 17, color: AppColors.textMuted),
           onPressed: onPressed,
-          style: const ButtonStyle(
-            backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+          style: ButtonStyle(
+            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) {
+                return AppColors.textDim;
+              }
+              return AppColors.textMuted;
+            }),
           ),
         ),
       );

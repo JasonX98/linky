@@ -102,6 +102,19 @@ class DownloadQueueController extends Notifier<List<DownloadTask>> {
         .then((_) {}, onError: (_) {});
   }
 
+  /// 从队列中移除任务（不记录到历史）。正在下载或取消中的任务不允许移除，
+  /// 调用方应通过 UI 禁用删除按钮来约束。
+  void remove(String id) {
+    final task = _find(id);
+    if (task == null) return;
+    // 安全门：防止误删活动任务
+    if (task.status == TaskStatus.downloading ||
+        task.status == TaskStatus.canceling) {
+      return;
+    }
+    state = state.where((t) => t.id != id).toList();
+  }
+
   void _startNext() {
     var running = runningCount;
     while (running < _concurrency) {
