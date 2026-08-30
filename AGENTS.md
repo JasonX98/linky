@@ -67,6 +67,22 @@ Flutter **Windows 桌面端**应用（基于 yt-dlp 的视频下载器，Riverpo
   `Align(topCenter)` + `BoxConstraints(maxWidth: AppSize.contentMax)` 居中，
   列表用 `ListView` 而非 `SingleChildScrollView`，避免窄窗口溢出。
 
+## 响应式约定（新增/改动布局时必读）
+- 新布局**必须能在窄栏下收缩**，不能假设宽度。断点常量统一放在 `AppSize`：
+  `settingsRowBreakpoint`(420)、`urlRowBreakpoint`(420)；历史表格列宽由
+  `_TableLayout.of()` 分档（<520 隐藏"格式/时间"列 / <740 压到 92·92·84 / 否则 130·130·92）。
+- 固定高度的容器（如 76px `AppHeader`）内的文字**必须** `maxLines: 1` + `overflow: ellipsis`，
+  否则换行会把父容器撑高，变成纵向 RenderFlex 溢出。
+- 垂直 `Flex`/`Column` 里**不要**用 `Expanded` 包固定高度控件（它会抢纵向空间、把控件拉变形）；
+  需要"横向占满、纵向定高"时按方向二选一（见 `_urlCard` 的 `stacked` 分支）。
+- 最小窗口尺寸 960×640 由 `windows/runner/win32_window.cpp` 的 `WM_GETMINMAXINFO` 兜底
+  （常量 `kMinimumWindowWidth/Height`）。**实测下限是 560px 窗口**（扣 232 侧边栏 +
+  80 内边距 = 248 内容宽）；再窄就会溢出在 fluent_ui 自带 `TextBox` 的内部结构上，
+  那是框架控件，应用层改不了 —— 所以不要在 Flutter 层做无止境的窄屏适配，靠窗口最小尺寸兜底。
+- 三个页面都有 "narrow window" 回归用例（`test/ui/*_test.dart`），用
+  `platformDispatcher.views.first.physicalSize` 压窄视口，靠 `pumpAndSettle`
+  把 RenderFlex 溢出升级为测试失败来兜住窄屏回归。改布局后务必跑一遍。
+
 ## 引擎更新 / 自愈
 - `lib/engine/engine_update.dart` 会向 GitHub 查询更新的 yt-dlp 并以原子方式替换
   （`.new`/`.bak` 交换）。`ensureEngine()` 可自愈：当 `yt-dlp.exe` 缺失**或为零字节**时重新下载。

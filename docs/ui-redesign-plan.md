@@ -142,3 +142,22 @@ scaffoldBackgroundColor: bgBase, cardColor: bgCard, menuColor: bgSurface, micaBa
    若把同一 key 继续传给内层 fluent 控件，`find.byKey` 会同时命中两个 Element。
 
 `flutter test` 在本机需先摘掉代理变量，详见 `AGENTS.md` 的"测试与 e2e 注意点"。
+
+## 十二、补充：窄窗口溢出修复（提交 cbb45af / 6232754 / 最小尺寸）
+
+改版后补了窄窗口回归覆盖，发现测试默认视口 1400px 导致**所有窄分支从未被执行**，
+一补就抓出 6 处真实溢出（详见 `AGENTS.md` 的"响应式约定"）：
+
+`AppHeader` 纵向溢出 299px（固定 76px 头部内文字换行撑高）· `SectionHeader` 横向溢出 ·
+设置页 `_SettingRow` 溢出 90px · 设置页关于卡片 Logo 行溢出 56px ·
+历史页表格列宽固定 480px 必然溢出 · 下载页 `_urlCard` 的 130px 固定宽按钮挤爆输入框行。
+
+**能力边界**：实测 560px 窗口（248 内容宽）是下限；520 起溢出发生在 fluent_ui 自带
+`TextBox` 内部，应用层无法干预。因此最终方案是"Flutter 层优雅降级 + Win32 层兜底"：
+`windows/runner/win32_window.cpp` 新增 `WM_GETMINMAXINFO` 处理，最小窗口 960×640
+（该尺寸下下载页走完整宽屏布局、历史表格走中档不隐藏列）。
+
+注：该 C++ 改动是本项目唯一一处**未经编译验证**的代码（沙箱无 C++ 编译器且禁止创建
+符号链接，无法构建 Windows 目标）。已做静态校对：无非 ASCII 字符（避免 MSVC C4819）、
+括号平衡、所用 API（`MonitorFromWindow` / `FlutterDesktopGetDpiForMonitor` / `Scale`）
+均在本文件既有代码中出现过。首次构建请留意是否报错。
