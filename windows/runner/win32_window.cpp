@@ -26,6 +26,16 @@ constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
 
+// Minimum window size, in logical pixels.
+//
+// The pages degrade gracefully on narrow windows (the link button wraps below
+// the input field, the history table hides its "format"/"time" columns), but
+// they cannot shrink indefinitely: below ~560 logical px the internals of
+// Fluent UI's own TextBox overflow, which app-level code cannot prevent.
+// Enforcing a minimum here keeps every page in a layout we actually test.
+constexpr int kMinimumWindowWidth = 960;
+constexpr int kMinimumWindowHeight = 640;
+
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;
 
@@ -204,6 +214,20 @@ Win32Window::MessageHandler(HWND hwnd,
         MoveWindow(child_content_, rect.left, rect.top, rect.right - rect.left,
                    rect.bottom - rect.top, TRUE);
       }
+      return 0;
+    }
+
+    // Clamp the resize floor. ptMinTrackSize is expressed in physical pixels,
+    // so the logical minimum is scaled by the monitor's DPI, the same
+    // conversion Create() applies to the initial window size.
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor =
+          MonitorFromWindow(window_handle_, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale_factor = dpi / 96.0;
+      info->ptMinTrackSize.x = Scale(kMinimumWindowWidth, scale_factor);
+      info->ptMinTrackSize.y = Scale(kMinimumWindowHeight, scale_factor);
       return 0;
     }
 
