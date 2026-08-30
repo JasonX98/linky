@@ -86,7 +86,7 @@ class Sidebar extends StatelessWidget {
   }
 }
 
-/// 品牌区：渐变图标块 + Linky / 链可。
+/// 品牌区：应用图标（assets/logo.png，自带圆角与透明边）+ Linky / 链可。
 class _Brand extends StatelessWidget {
   const _Brand();
 
@@ -99,11 +99,9 @@ class _Brand extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.tile),
-              child: Image.asset('assets/logo.png',
-                  width: 36, height: 36, fit: BoxFit.cover),
-            ),
+            // logo 自带圆角与透明边，不要再 ClipRRect 二次裁切
+            Image.asset('assets/logo.png',
+                width: 36, height: 36, fit: BoxFit.contain),
             const SizedBox(width: 12),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,

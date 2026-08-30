@@ -346,12 +346,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             children: [
               Row(
                 children: [
-                  ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(AppRadius.card),
-                    child: Image.asset('assets/logo.png',
-                        width: 56, height: 56, fit: BoxFit.cover),
-                  ),
+                  // logo 自带圆角与透明边，不要再 ClipRRect 二次裁切
+                  Image.asset('assets/logo.png',
+                      width: 56, height: 56, fit: BoxFit.contain),
                   const SizedBox(width: 16),
                   // Expanded：窄栏时让文字列收缩，否则 Row 会 RenderFlex 溢出
                   Expanded(
