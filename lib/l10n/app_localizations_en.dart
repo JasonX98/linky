@@ -35,13 +35,13 @@ class SEn extends S {
   String get urlPlaceholder => 'Paste video link';
 
   @override
-  String get analyze => 'Analyze';
+  String get analyze => 'Parse link';
 
   @override
-  String get analyzing => 'Analyzing...';
+  String get analyzing => 'Parsing video info…';
 
   @override
-  String get addToDownload => 'Add to downloads';
+  String get addToDownload => 'Add to queue';
 
   @override
   String get taskList => 'Tasks';
@@ -233,4 +233,195 @@ class SEn extends S {
   String updateFailed(String component, String detail) {
     return '$component update failed: $detail';
   }
+
+  @override
+  String get versionLabel => 'Version';
+
+  @override
+  String get downloadTitle => 'Download video';
+
+  @override
+  String get downloadSubtitle => 'Paste a link to save what you like';
+
+  @override
+  String get newTask => 'New download task';
+
+  @override
+  String get videoUrl => 'Video URL';
+
+  @override
+  String get parseHint => 'Supports MP4, WebM, audio and more';
+
+  @override
+  String get parseSuccess => 'Parsed. Pick a quality to start';
+
+  @override
+  String get parseReady => 'Link parsed';
+
+  @override
+  String get readyBadge => 'READY';
+
+  @override
+  String get previewPlaceholder => 'Preview';
+
+  @override
+  String videoMeta(String source, String duration) {
+    return 'Source: $source · $duration';
+  }
+
+  @override
+  String get qualityLabel => 'Quality';
+
+  @override
+  String get activeTasks => 'Downloading';
+
+  @override
+  String concurrencyLabel(int count) {
+    return '$count concurrent downloads';
+  }
+
+  @override
+  String taskCount(int count) {
+    return '$count tasks';
+  }
+
+  @override
+  String get viewAllHistory => 'View all history';
+
+  @override
+  String get noActiveTasks => 'No active tasks — paste a link to start';
+
+  @override
+  String get historyTitle => 'Download history';
+
+  @override
+  String get historySubtitle => 'Review and manage everything you saved';
+
+  @override
+  String get allRecords => 'All records';
+
+  @override
+  String recordCount(int count) {
+    return '$count records';
+  }
+
+  @override
+  String lastUpdated(String time) {
+    return 'Last updated: $time';
+  }
+
+  @override
+  String todayAt(String time) {
+    return 'Today $time';
+  }
+
+  @override
+  String yesterdayAt(String time) {
+    return 'Yesterday $time';
+  }
+
+  @override
+  String get clearHistory => 'Clear history';
+
+  @override
+  String get clearHistoryTitle => 'Clear download history';
+
+  @override
+  String get clearHistoryConfirm =>
+      'Clear all download history? This cannot be undone.';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get historyFilterEmpty => 'No records match this filter';
+
+  @override
+  String get colFileName => 'File name';
+
+  @override
+  String get colFormat => 'Format · Quality';
+
+  @override
+  String get colTime => 'Downloaded at';
+
+  @override
+  String get colStatus => 'Status';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSubtitle => 'Tune Linky to the way you work';
+
+  @override
+  String get saveSettings => 'Save';
+
+  @override
+  String get saved => 'Saved';
+
+  @override
+  String get savedBanner => 'Settings saved';
+
+  @override
+  String get preferencesGroup => 'Preferences';
+
+  @override
+  String get sectionGeneral => 'General';
+
+  @override
+  String get sectionGeneralDesc => 'Basic display and notification behavior';
+
+  @override
+  String get sectionDownload => 'Downloads';
+
+  @override
+  String get sectionDownloadDesc =>
+      'Where files are saved and how downloads behave';
+
+  @override
+  String get sectionAbout => 'About & updates';
+
+  @override
+  String get sectionAboutDesc => 'Version info and updates';
+
+  @override
+  String get languageDesc => 'Choose the language Linky displays';
+
+  @override
+  String get notifyOnComplete => 'Notify me when finished';
+
+  @override
+  String get notifyOnCompleteDesc => 'Remind me when a download completes';
+
+  @override
+  String get qualityDesc => 'Quality used when nothing is picked manually';
+
+  @override
+  String get downloadDirDesc =>
+      'All downloads are saved to this folder by default';
+
+  @override
+  String get concurrencyDesc =>
+      'Number of simultaneous downloads; higher uses more bandwidth';
+
+  @override
+  String get chooseFolder => 'Choose folder';
+
+  @override
+  String get chooseFile => 'Choose file';
+
+  @override
+  String get cookieAdded => 'Added';
+
+  @override
+  String get cookieEmpty => 'No cookie file added';
+
+  @override
+  String aboutVersionLine(String version) {
+    return 'Version $version · Windows desktop';
+  }
+
+  @override
+  String get ffmpegVersion => 'FFmpeg version';
 }
