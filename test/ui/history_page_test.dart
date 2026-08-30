@@ -139,12 +139,38 @@ void main() {
 
     expect(find.text('视频A'), findsOneWidget);
     expect(find.text('视频B'), findsOneWidget);
-    // 状态徽标本地化（completed/failed/canceled）
-    expect(find.text('已完成'), findsOneWidget);
-    expect(find.text('失败'), findsOneWidget);
-    // 完成时间 yyyy-MM-dd HH:mm；failed 无 completedAt 回退 createdAt
-    expect(find.text('2026-01-02 03:04'), findsOneWidget);
-    expect(find.text('2026-01-03 05:06'), findsOneWidget);
+    // 状态徽标本地化（completed/failed/canceled）。注：筛选 tab 上有同名文案，
+    // 故按行 scope 断言，避免歧义。
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('history_row_1')),
+        matching: find.text('已完成'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('history_row_2')),
+        matching: find.text('失败'),
+      ),
+      findsOneWidget,
+    );
+    // 时间列：今天/昨天显示 HH:mm，更早显示 yyyy/MM/dd；
+    // failed 无 completedAt 回退 createdAt
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('history_row_1')),
+        matching: find.text('2026/01/02'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('history_row_2')),
+        matching: find.text('2026/01/03'),
+      ),
+      findsOneWidget,
+    );
     // failed 行弱化展示错误详情
     expect(find.text('网络错误：请检查网络连接后重试'), findsOneWidget);
     // 有 filePath 才渲染打开文件/目录；redownload/delete 始终渲染
@@ -162,6 +188,31 @@ void main() {
     await tester.pumpWidget(wrap(const []));
     await tester.pumpAndSettle();
     expect(find.text('暂无下载记录'), findsOneWidget);
+  });
+
+  testWidgets('status filter tabs narrow the list', (tester) async {
+    await tester.pumpWidget(wrap([completed, failed]));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('history_row_1')), findsOneWidget);
+    expect(find.byKey(const Key('history_row_2')), findsOneWidget);
+
+    // 只看已完成
+    await tester.tap(find.byKey(const Key('filter_completed_tab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('history_row_1')), findsOneWidget);
+    expect(find.byKey(const Key('history_row_2')), findsNothing);
+
+    // 只看失败
+    await tester.tap(find.byKey(const Key('filter_failed_tab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('history_row_1')), findsNothing);
+    expect(find.byKey(const Key('history_row_2')), findsOneWidget);
+
+    // 回到全部
+    await tester.tap(find.byKey(const Key('filter_all_tab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('history_row_1')), findsOneWidget);
+    expect(find.byKey(const Key('history_row_2')), findsOneWidget);
   });
 
   testWidgets('tap delete_<id> removes the row', (tester) async {

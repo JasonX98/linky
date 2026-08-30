@@ -48,6 +48,16 @@ void main() {
     await tester.pumpAndSettle();
     // 设置窗格已是真实页面：显示设置表单而非占位文案
     expect(find.textContaining('设置将在下个版本提供'), findsNothing);
+    // 设置页按分区切换（原型式）：默认"常规"，下载目录在"下载设置"里
+    expect(find.byKey(const Key('section_general_tab')), findsOneWidget);
+    expect(find.text('下载目录'), findsNothing);
+    await tester.tap(find.byKey(const Key('section_download_tab')));
+    await tester.pumpAndSettle();
     expect(find.text('下载目录'), findsOneWidget);
+
+    // 回到下载页
+    await tester.tap(find.text('下载'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('url_field')), findsOneWidget);
   });
 }

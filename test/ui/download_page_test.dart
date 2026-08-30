@@ -15,6 +15,7 @@ import 'package:video_downloader/core/providers.dart';
 import 'package:video_downloader/features/download/providers.dart';
 import 'package:video_downloader/l10n/app_localizations.dart';
 import 'package:video_downloader/main.dart';
+import 'package:video_downloader/theme/widgets.dart';
 
 class FakeUiHistoryRepository implements HistoryRepository {
   @override
@@ -169,9 +170,9 @@ void main() {
     for (final u in ['u1', 'u2', 'u3']) {
       expect(find.byKey(Key('check_$u')), findsOneWidget);
     }
-    // 默认全选；条目行展示时长；条目列表有界可滚动（不 shrinkWrap）
+    // 默认全选；条目行展示时长（mm:ss）；条目列表有界可滚动（不 shrinkWrap）
     expect(find.text('已选 3/3 个条目'), findsOneWidget);
-    expect(find.text('61 秒'), findsOneWidget);
+    expect(find.text('01:01'), findsOneWidget);
     final entryList = tester.widget<ListView>(
         find.byKey(const Key('entry_list')));
     expect(entryList.shrinkWrap, isFalse);
@@ -184,7 +185,7 @@ void main() {
     await tester.pumpAndSettle();
     // 无选中 → 批量按钮禁用
     expect(find.text('已选 0/3 个条目'), findsOneWidget);
-    final enqueue = tester.widget<FilledButton>(
+    final enqueue = tester.widget<PrimaryButton>(
         find.byKey(const Key('enqueue_button')));
     expect(enqueue.onPressed, isNull);
   });

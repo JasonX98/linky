@@ -12,6 +12,7 @@ import 'package:video_downloader/engine/models.dart';
 import 'package:video_downloader/features/download/queue_controller.dart';
 import 'package:video_downloader/features/download/download_task.dart';
 import 'package:video_downloader/l10n/app_localizations.dart';
+import 'package:video_downloader/theme/widgets.dart';
 
 /// 仅用于测试：覆写 hasActive，不依赖真实队列状态。
 class _FakeQueue extends DownloadQueueController {
@@ -106,10 +107,37 @@ void main() {
         child: const _LocaleHost(),
       );
 
+  /// 切换到指定分区（原型式：一次只显示一个分区）。
+  Future<void> openSection(WidgetTester tester, String key) async {
+    await tester.tap(find.byKey(Key(key)));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('sections switch one at a time', (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+    // 默认落在"常规"
+    expect(find.text('语言'), findsOneWidget);
+    expect(find.byKey(const Key('browse_button')), findsNothing);
+    expect(find.byKey(const Key('check_update_button')), findsNothing);
+
+    // 常规 → 下载设置：只剩下载相关项
+    await openSection(tester, 'section_download_tab');
+    expect(find.byKey(const Key('browse_button')), findsOneWidget);
+    expect(find.byKey(const Key('check_update_button')), findsNothing);
+    expect(find.text('语言'), findsNothing);
+
+    // 下载设置 → 关于与更新
+    await openSection(tester, 'section_about_tab');
+    expect(find.byKey(const Key('check_update_button')), findsOneWidget);
+    expect(find.byKey(const Key('browse_button')), findsNothing);
+  });
+
   testWidgets('browse picks directory, updates text and persists', (tester) async {
     picker = () async => r'D:\X';
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_download_tab');
     // 未设置目录时显示系统下载文件夹占位
     expect(find.text('系统下载文件夹'), findsOneWidget);
 
@@ -121,35 +149,62 @@ void main() {
     expect(prefs.getString('downloadDir'), r'D:\X');
   });
 
-  testWidgets('slider tap updates concurrency text', (tester) async {
+  testWidgets('stepper +/- updates concurrency and persists', (tester) async {
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_download_tab');
     // 默认并发 3
-    expect(find.text('3'), findsOneWidget);
+    expect(find.descendant(
+      of: find.byKey(const Key('concurrency_stepper')),
+      matching: find.text('3'),
+    ), findsOneWidget);
 
-    // 点击滑条最右端刻度 → 5（divisions=4，值 1..5）
-    final slider = find.byKey(const Key('concurrency_slider'));
-    final center = tester.getCenter(slider);
-    final size = tester.getSize(slider);
-    await tester.tapAt(Offset(center.dx + size.width / 2 - 1, center.dy));
-    await tester.pumpAndSettle();
-    expect(find.text('5'), findsOneWidget);
-    expect(find.text('3'), findsNothing);
+    // 加到上限 5，再点一次应保持 5
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('concurrency_increment')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.descendant(
+      of: find.byKey(const Key('concurrency_stepper')),
+      matching: find.text('5'),
+    ), findsOneWidget);
+    expect(prefs.getInt('concurrency'), 5);
+
+    // 减回 2
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('concurrency_decrement')));
+      await tester.pumpAndSettle();
+    }
+    expect(find.descendant(
+      of: find.byKey(const Key('concurrency_stepper')),
+      matching: find.text('2'),
+    ), findsOneWidget);
+    expect(prefs.getInt('concurrency'), 2);
   });
 
-  testWidgets('language combo switches UI to english instantly', (tester) async {
+  testWidgets('language picker switches UI to english instantly',
+      (tester) async {
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_download_tab');
     expect(find.text('下载目录'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('language_combo')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('English').last);
+    // 语言选择在"常规"分区
+    await openSection(tester, 'section_general_tab');
+    await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
 
-    // 本页文案即时变英文，无需重启
-    expect(find.text('Download directory'), findsOneWidget);
+    // 本页文案即时变英文，无需重启（分区导航 + 分区标题）
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('section_general_tab')),
+        matching: find.text('General'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('下载目录'), findsNothing);
+    await openSection(tester, 'section_download_tab');
+    expect(find.text('Download directory'), findsOneWidget);
     expect(find.text('Concurrent downloads'), findsOneWidget);
   });
 
@@ -157,8 +212,13 @@ void main() {
       (tester) async {
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
-    expect(find.textContaining('关于'), findsOneWidget);
-    expect(find.text('yt-dlp 版本: 2026.08.19'), findsOneWidget);
+    await openSection(tester, 'section_about_tab');
+    expect(find.byKey(const Key('about_card')), findsOneWidget);
+    // 版本行：标签与数值是两个 Text
+    expect(find.text('yt-dlp 版本: '), findsOneWidget);
+    expect(find.text('2026.08.19'), findsOneWidget);
+    expect(find.text('FFmpeg 版本: '), findsOneWidget);
+    expect(find.text('7.0.0'), findsOneWidget);
     expect(find.textContaining('仅供个人学习'), findsWidgets);
   });
 
@@ -166,6 +226,7 @@ void main() {
     final service = _PageService();
     await tester.pumpWidget(hostWith(engineService: service));
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
 
     await tester.tap(find.byKey(const Key('check_update_button')));
     await tester.pumpAndSettle();
@@ -177,14 +238,19 @@ void main() {
     final service = _PageService(ytUpdate: '2026.09.01');
     await tester.pumpWidget(hostWith(engineService: service));
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
 
     await tester.tap(find.byKey(const Key('check_update_button')));
     // 注：检查过程很快，进行中态（“检查中…”+按钮禁用）不易稳定捕获，
     // 此处验证最终态：状态文案与按钮恢复可点击。
     await tester.pumpAndSettle(const Duration(seconds: 5));
     expect(find.text('yt-dlp 已更新到 2026.09.01'), findsOneWidget);
-    final btn2 = tester.widget<Button>(find.byKey(const Key('check_update_button')));
-    expect(btn2.onPressed, isNotNull);
+    // 按钮恢复可点击（checking 已回到 false）
+    final ghost = tester.widget<GhostButton>(find.descendant(
+      of: find.byKey(const Key('check_update_button')),
+      matching: find.byType(GhostButton),
+    ));
+    expect(ghost.onPressed, isNotNull);
   });
 
   testWidgets('check update shows busy per component when download active',
@@ -192,6 +258,7 @@ void main() {
     final service = _PageService(ytUpdate: '2026.09.01', ffUpdate: '9.0.1');
     await tester.pumpWidget(hostWith(engineService: service, queueActive: true));
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
 
     await tester.tap(find.byKey(const Key('check_update_button')));
     await tester.pumpAndSettle();
@@ -207,6 +274,7 @@ void main() {
     );
     await tester.pumpWidget(hostWith(engineService: service));
     await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
 
     await tester.tap(find.byKey(const Key('check_update_button')));
     await tester.pumpAndSettle();
@@ -220,7 +288,8 @@ void main() {
     cookiePicker = () async => r'C:\cookies\net.txt';
     await tester.pumpWidget(host());
     await tester.pumpAndSettle();
-    // 未设置时显示占位
+    await openSection(tester, 'section_download_tab');
+    // 未设置时显示占位（右侧徽标"未设置" + 路径框占位文案）
     expect(find.text('未设置'), findsOneWidget);
     expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
 
