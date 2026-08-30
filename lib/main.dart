@@ -13,6 +13,7 @@ import 'package:video_downloader/features/download/providers.dart';
 import 'package:video_downloader/features/settings/settings_controller.dart';
 import 'package:video_downloader/features/shell/app_shell.dart';
 import 'package:video_downloader/l10n/app_localizations.dart';
+import 'package:video_downloader/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,18 +66,6 @@ Future<void> _attachLogger() async {
   }
 }
 
-// fluent_ui 的 Colors 无 indigo 且 accentColor 要求 AccentColor，
-// 按 fluent 内置 swatch 结构构造 Material Indigo 强调色
-final _indigoAccent = AccentColor.swatch(const <String, Color>{
-  'darkest': Color(0xFF1A237E),
-  'darker': Color(0xFF283593),
-  'dark': Color(0xFF303F9F),
-  'normal': Color(0xFF3F51B5),
-  'light': Color(0xFF5C6BC0),
-  'lighter': Color(0xFF7986CB),
-  'lightest': Color(0xFF9FA8DA),
-});
-
 class App extends ConsumerWidget {
   const App({super.key});
 
@@ -84,8 +73,8 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     return FluentApp(
-      title: 'Video Downloader',
-      theme: FluentThemeData(accentColor: _indigoAccent),
+      title: AppMeta.name,
+      theme: buildAppTheme(),
       locale: Locale(settings.language),
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,
