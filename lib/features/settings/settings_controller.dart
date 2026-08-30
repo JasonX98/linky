@@ -41,6 +41,7 @@ class SettingsState {
     this.concurrency = 3,
     this.defaultPreset = QualityPreset.best,
     required this.language,
+    this.notifyOnComplete = true,
   });
 
   final String? downloadDir;
@@ -51,6 +52,10 @@ class SettingsState {
   final QualityPreset defaultPreset;
   final String language;
 
+  /// 下载完成后是否提示。当前仅作为偏好持久化（尚未接入系统通知），
+  /// 控件与存储先落地，避免后续接通知时再改状态结构。
+  final bool notifyOnComplete;
+
   SettingsState copyWith({
     String? downloadDir,
     bool clearDownloadDir = false,
@@ -59,6 +64,7 @@ class SettingsState {
     int? concurrency,
     QualityPreset? defaultPreset,
     String? language,
+    bool? notifyOnComplete,
   }) =>
       SettingsState(
         downloadDir:
@@ -67,6 +73,7 @@ class SettingsState {
         concurrency: concurrency ?? this.concurrency,
         defaultPreset: defaultPreset ?? this.defaultPreset,
         language: language ?? this.language,
+        notifyOnComplete: notifyOnComplete ?? this.notifyOnComplete,
       );
 }
 
@@ -99,6 +106,7 @@ class SettingsController extends Notifier<SettingsState> {
           ? QualityPreset.values[storedPreset]
           : QualityPreset.best,
       language: prefs.getString('language') ?? _systemLang(),
+      notifyOnComplete: prefs.getBool('notifyOnComplete') ?? true,
     );
   }
 
@@ -138,6 +146,12 @@ class SettingsController extends Notifier<SettingsState> {
   void setLanguage(String language) {
     state = state.copyWith(language: language);
     unawaited(ref.read(sharedPrefsProvider).setString('language', language));
+  }
+
+  void setNotifyOnComplete(bool value) {
+    state = state.copyWith(notifyOnComplete: value);
+    unawaited(
+        ref.read(sharedPrefsProvider).setBool('notifyOnComplete', value));
   }
 
   static String _systemLang() =>
