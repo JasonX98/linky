@@ -1,6 +1,6 @@
 // lib/features/settings/settings_page.dart
 //
-// 设置页 = 头部（保存设置）+ 180px 二级分区导航 + 分区内容。
+// 设置页 = 头部 + 180px 二级分区导航 + 分区内容。
 // 分区：常规 / 下载设置 / 关于与更新，一次只显示一个（与原型一致）。
 // 所有表单控件的 key 与文案保持不变（browse_button / cookie_file_button /
 // clear_cookie_button / preset_combo? / language_combo / check_update_button），
@@ -37,21 +37,12 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   SettingsSection _section = SettingsSection.general;
-  bool _saved = false;
 
   Future<void> _browse() async {
     final pick = widget.directoryPicker ?? getDirectoryPath;
     final dir = await pick();
     if (dir == null || dir.isEmpty) return;
     ref.read(settingsProvider.notifier).setDownloadDir(dir);
-  }
-
-  /// 设置在改动时即刻持久化，保存按钮只做一次轻反馈。
-  void _save() {
-    setState(() => _saved = true);
-    Future<void>.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() => _saved = false);
-    });
   }
 
   @override
@@ -62,11 +53,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         AppHeader(
           title: s.settingsTitle,
           subtitle: s.settingsSubtitle,
-          action: PrimaryButton(
-            label: _saved ? s.saved : s.saveSettings,
-            icon: _saved ? FluentIcons.check_mark : FluentIcons.save,
-            onPressed: _save,
-          ),
         ),
         Expanded(
           child: Align(
@@ -80,11 +66,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   vertical: AppSize.pagePaddingV,
                 ),
                 children: [
-                  if (_saved)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _SavedBanner(text: s.savedBanner),
-                    ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -575,31 +556,7 @@ class _SectionTabState extends State<_SectionTab> {
   }
 }
 
-/// 保存成功提示条。
-class _SavedBanner extends StatelessWidget {
-  const _SavedBanner({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppRadius.control),
-          border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            const Icon(FluentIcons.check_mark,
-                size: 14, color: AppColors.success),
-            const SizedBox(width: 8),
-            Text(text, style: AppText.label(color: AppColors.successText)),
-          ],
-        ),
-      );
-}
-
+/// 版本行：label + 值。
 class _VersionLine extends StatelessWidget {
   const _VersionLine({required this.label, required this.value});
 

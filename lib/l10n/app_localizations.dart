@@ -715,24 +715,6 @@ abstract class S {
   /// **'根据你的习惯调整 Linky 的工作方式'**
   String get settingsSubtitle;
 
-  /// No description provided for @saveSettings.
-  ///
-  /// In zh, this message translates to:
-  /// **'保存设置'**
-  String get saveSettings;
-
-  /// No description provided for @saved.
-  ///
-  /// In zh, this message translates to:
-  /// **'已保存'**
-  String get saved;
-
-  /// No description provided for @savedBanner.
-  ///
-  /// In zh, this message translates to:
-  /// **'设置已保存'**
-  String get savedBanner;
-
   /// No description provided for @preferencesGroup.
   ///
   /// In zh, this message translates to:

@@ -356,15 +356,6 @@ class SZh extends S {
   String get settingsSubtitle => '根据你的习惯调整 Linky 的工作方式';
 
   @override
-  String get saveSettings => '保存设置';
-
-  @override
-  String get saved => '已保存';
-
-  @override
-  String get savedBanner => '设置已保存';
-
-  @override
   String get preferencesGroup => '偏好设置';
 
   @override

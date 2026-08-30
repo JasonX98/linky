@@ -363,15 +363,6 @@ class SEn extends S {
   String get settingsSubtitle => 'Tune Linky to the way you work';
 
   @override
-  String get saveSettings => 'Save';
-
-  @override
-  String get saved => 'Saved';
-
-  @override
-  String get savedBanner => 'Settings saved';
-
-  @override
   String get preferencesGroup => 'Preferences';
 
   @override
