@@ -711,6 +711,11 @@ class _FolderOpenPainter extends CustomPainter {
   _FolderOpenPainter(this.color);
   final Color color;
 
+  // Lucide 官方 folder-open.svg 路径（24×24 viewBox, stroke-width=2）
+  // 来源：https://github.com/lucide-icons/lucide/blob/main/icons/folder-open.svg
+  // 原始 d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"
+  static const _r = Radius.circular(2.0);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -724,34 +729,35 @@ class _FolderOpenPainter extends CustomPainter {
     canvas.save();
     canvas.scale(scale);
 
-    // 后层（翻盖）
-    final back = Path()
-      ..moveTo(2, 10)
-      ..lineTo(3.45, 5.64)
-      ..cubicTo(3.79, 4.68, 4.54, 4.0, 5.35, 4.0)
-      ..lineTo(10.0, 4.0)
-      ..lineTo(12.0, 8.0)
-      ..lineTo(19.15, 8.0)
-      ..cubicTo(19.96, 8.0, 20.71, 8.68, 21.05, 9.57)
-      ..lineTo(22.0, 13.0);
-    canvas.drawPath(back, paint);
+    final path = Path()
+      ..moveTo(6, 14)
+      ..lineTo(7.5, 11.1)
+      ..arcToPoint(const Offset(9.24, 10),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(20, 10)
+      ..arcToPoint(const Offset(21.94, 12.5),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(20.4, 18.5)
+      ..arcToPoint(const Offset(18.45, 20),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(4, 20)
+      ..arcToPoint(const Offset(2, 18),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(2, 5)
+      ..arcToPoint(const Offset(4, 3),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(7.9, 3)
+      ..arcToPoint(const Offset(9.59, 3.9),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(10.4, 5.1)
+      ..arcToPoint(const Offset(12.07, 6),
+          radius: _r, rotation: 0, largeArc: false, clockwise: false)
+      ..lineTo(18, 6)
+      ..arcToPoint(const Offset(20, 8),
+          radius: _r, rotation: 0, largeArc: false, clockwise: true)
+      ..lineTo(20, 10);
 
-    // 前层（主体文件夹）
-    final front = Path()
-      ..moveTo(6.0, 14.0)
-      ..lineTo(7.45, 9.64)
-      ..cubicTo(7.79, 8.68, 8.54, 8.0, 9.35, 8.0)
-      ..lineTo(18.5, 8.0)
-      ..cubicTo(19.31, 8.0, 20.06, 8.69, 20.4, 9.57)
-      ..lineTo(21.85, 14.0)
-      ..cubicTo(22.23, 15.15, 21.47, 16.28, 20.35, 16.72)
-      ..lineTo(18.95, 17.29)
-      ..cubicTo(18.37, 17.52, 17.73, 17.61, 17.1, 17.55)
-      ..lineTo(8.05, 16.55)
-      ..cubicTo(7.08, 16.46, 6.25, 15.87, 5.85, 15.0)
-      ..close();
-    canvas.drawPath(front, paint);
-
+    canvas.drawPath(path, paint);
     canvas.restore();
   }
 
