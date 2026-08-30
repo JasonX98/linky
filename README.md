@@ -1,12 +1,72 @@
-# Linky 链可
+# Linky 链可 · 视频下载器
 
-基于 yt-dlp 的 Windows 桌面视频下载工具（Flutter 开发）。
+> 基于 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 的 Windows 桌面视频下载工具。
+> 粘贴链接即可解析、选画质、一键下载；引擎在本地运行，数据不出本机。
 
-- 英文名：**Linky**
-- 中文名：**链可**
-- 发布标识：`identity_name: com.linky.app`（见 `pubspec.yaml` 的 `msix_config:`）
+- 英文名：**Linky** ｜ 中文名：**链可**
+- 当前版本：**v1.0.0**
+- 运行平台：**Windows 桌面端**（Flutter）
+- 核心引擎：**yt-dlp**（解析与下载）+ **FFmpeg**（音视频封装 / 转码）
 
-## 开发环境准备
+---
+
+## 核心功能
+
+应用分为三个模块，左侧常驻导航在 **下载 / 历史 / 设置** 之间切换。
+
+### 一、下载
+
+把视频链接交给 Linky，剩下的交给引擎。
+
+- **链接解析**：在链接框粘贴视频地址，自动识别并拉取标题、时长、上传者等信息；支持**单视频**与**播放列表**两种形态。
+- **画质选择**：解析完成后选择下载画质，预设如下：
+
+  | 预设 | 说明 |
+  | --- | --- |
+  | 最佳画质 | 自动选取当前可用的最高画质（音视频自动合并） |
+  | 1080p | 最高 1080p |
+  | 720p | 最高 720p |
+  | 480p | 最高 480p |
+
+- **Cookie 登录**：部分平台（如 YouTube）需要登录后才能解析或下载。直接在本页链接框下方「选择文件」导入 Netscape 格式 Cookie 文件，下载与分析都会带上它；已导入时显示「已添加」徽标，可一键清除。
+- **解析失败提示**：当链接解析失败且尚未设置 Cookie 时，链接框下方会给出警示提示，引导你导入 Cookie 后重试。
+- **一键下载**：选好画质后入队，下载在后台执行，不影响你继续解析下一个链接。
+
+### 二、历史
+
+所有下载任务集中管理，状态一目了然。
+
+- **任务列表**：记录每条任务的标题、链接、画质标签与状态（排队中 / 下载中 / 已完成 / 失败 / 已取消）。
+- **行内操作**（悬停显示）：
+  - 打开文件：定位并打开已下载的视频；
+  - 打开目录：打开文件所在文件夹；
+  - 重试：仅 **失败 / 已取消** 状态可点击，**已完成任务置灰**不可点；
+  - 删除：从列表中移除该记录。
+- **播放列表展开**：播放列表任务可在历史中展开并单独重试其中某一项。
+
+### 三、设置
+
+- **界面语言**：中文 / English 一键切换，全应用即时生效。
+- **默认画质**：设定新下载的默认画质，省去每次手动选择。
+- **更新检查超时**：配置检查引擎更新时的网络超时阈值。
+- **检查更新**：手动检查 **yt-dlp** 与 **FFmpeg** 的新版本，发现可用更新可一键升级。
+
+---
+
+## 技术特性
+
+- **本地优先**：yt-dlp 与 FFmpeg 二进制随应用本地运行，解析与下载不经过任何中转服务器，链接与 Cookie 仅用于访问目标站点。
+- **检查更新**：可对比本地引擎版本与上游最新发布，按需升级，无需重装应用。
+- **深色界面**：深色主题 + 青色强调色，长时间使用更舒适。
+- **响应式布局**：窗口可在较窄宽度下优雅收缩，不依赖固定尺寸。
+
+---
+
+## 附：开发构建
+
+> 面向开发者。普通用户安装后无需关注本节。
+
+### 环境准备
 
 1. 安装 Flutter stable 并启用 Windows 桌面支持（`flutter config --enable-windows-desktop`）
 2. **首次构建前必须先下载引擎**（yt-dlp + FFmpeg，约 220MB）：
@@ -16,51 +76,19 @@
 3. `flutter pub get`
 4. `flutter run -d windows`
 
-## 测试
+### 测试
 
 ```powershell
 flutter test
 ```
 
-## MSIX 打包
+### MSIX 打包
 
-MSIX 打包由 dev 依赖 `msix` 提供，配置在 `pubspec.yaml` 的顶层 `msix_config:` 键中
-（identity/publisher/display name/logo/capabilities/languages 等）。
-
-生成 MSIX 安装包：
+由 dev 依赖 `msix` 提供，配置在 `pubspec.yaml` 的 `msix_config:` 中。生成安装包：
 
 ```powershell
 flutter pub run msix:create --release
-# 或等价的 dart 方式：dart run msix:create --release
 ```
 
-- 命令会先执行 `flutter build windows`（release），再打包并签名 MSIX。
-- 产出文件位于 `build\windows\x64\runner\Release\video_downloader.msix`。
-- 未提供证书时使用 `msix` 包自带的**测试证书**签名，仅可用于本机侧载/开发验收；
-  正式分发需提供你的 PFX 证书（见下节）。
-
-### 签名证书（需用户提供）
-
-**签名证书必须由用户提供，PFX 证书文件不应提交到仓库。** 提供一个受信任的自签名
-证书即可在本地安装测试；发布/商店外分发则需正式的代码签名证书。
-
-1. 在 `pubspec.yaml` 的 `msix_config:` 中配置：
-
-   ```yaml
-   msix_config:
-     certificate_path: C:\path\to\signcert.pfx
-     certificate_password: your-password
-     publisher: "CN=Your Publisher, O=Your Org, C=US"
-   ```
-
-   或通过命令行传入（优先于 YAML）：
-
-   ```powershell
-   flutter pub run msix:create --release --certificate-path C:\path\to\signcert.pfx --certificate-password your-password
-   ```
-
-   > `publisher` 为证书 Subject。未提供证书时，`msix` 包会回退到自带的
-   > **测试证书** 签名（可正常打包，但非受信任证书，不建议分发）。
-
-2. 默认会提示把证书安装到本机信任存储；
-   `--install-certificate false`（或 YAML `install_certificate: false`）可跳过该步骤。
+产出文件位于 `build\windows\x64\runner\Release\video_downloader.msix`。
+签名证书（PFX）需用户提供，不应提交到仓库；未提供时使用 `msix` 自带测试证书签名，仅可用于本机侧载。

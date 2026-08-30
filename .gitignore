@@ -49,3 +49,8 @@ assets/bin/*.exe
 .superpowers/
 .worktrees/
 .workbuddy/
+
+# Internal docs (not published to public repo)
+AGENTS.md
+docs/ui-redesign-plan.md
+docs/superpowers/
