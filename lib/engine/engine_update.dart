@@ -111,29 +111,29 @@ class EngineUpdateService {
     return s == null ? null : EngineVersion.tryParse(s);
   }
 
-  /// 读取 ffmpeg 版本号：ffmpeg 将版本打印到 stderr 首行（形如
-  /// `ffmpeg version 7.0.0-...`）。取 `version` 后的版本串；无可用 ffmpeg 时返回 null。
+  /// 读取 ffmpeg 版本号。注意：不同构建把版本横幅写到 stdout（如 gyan.dev essentials）
+  /// 或 stderr（官方 build），故同时监听两个流，哪个先产出非空行就用哪个；两个流都消费，
+  /// 避免 ffmpeg 大量输出写满管道缓冲导致子进程阻塞。取 `version` 后的版本串；
+  /// 无可用 ffmpeg 或读取失败/超时时返回 null（视为无法读取版本），不外抛。
   Future<String?> ffmpegVersion() async {
-    final engine = locator.resolve();
-    final path = engine.ffmpegPath;
-    if (path == null) return null;
-    final proc = await launcher.start(path, ['-version'],
-        environment: {'PYTHONIOENCODING': 'utf-8'});
-    String? firstLine;
     try {
-      firstLine = await proc.stderr.first.timeout(checkTimeout);
-    } on StateError {
+      final engine = locator.resolve();
+      final path = engine.ffmpegPath;
+      if (path == null) return null;
+      final proc = await launcher.start(path, ['-version'],
+          environment: {'PYTHONIOENCODING': 'utf-8'});
       try {
-        firstLine = await proc.stdout.first.timeout(checkTimeout);
-      } on StateError {
-        firstLine = null;
+        final firstLine = await _firstProcessLine(proc, checkTimeout);
+        if (firstLine == null) return null;
+        final m = RegExp(r'version\s+([\d.]+)').firstMatch(firstLine);
+        return m?.group(1) ?? firstLine.trim();
+      } finally {
+        proc.kill();
       }
-    } finally {
-      proc.kill();
+    } catch (_) {
+      // 引擎缺失 / 启动失败 / 超时 / 解析异常：一律视为版本未知，返回 null。
+      return null;
     }
-    if (firstLine == null) return null;
-    final m = RegExp(r'version\s+([\d.]+)').firstMatch(firstLine);
-    return m?.group(1) ?? firstLine.trim();
   }
 
   /// 检查是否有更新：两者均解析成功且 latest.isNewerThan(local) 才返回最新，否则 null。
@@ -297,20 +297,69 @@ class EngineUpdateService {
     }
   }
 
-  Future<String?> _readLocalVersion() async {
-    final engine = locator.resolve();
-    final proc = await launcher.start(
-      engine.ytDlpPath,
-      ['--version'],
-      environment: {'PYTHONIOENCODING': 'utf-8'},
+  /// 取子进程 stdout/stderr 中首个非空行（哪个流先产出就用哪个）。同时订阅两个流，
+  /// 避免仅订阅其一导致另一流写满管道缓冲而阻塞子进程；两个流都关闭且无产出、或超时
+  /// 时返回 null（不外抛，兼容不同 ffmpeg 构建的横幅落点差异）。
+  Future<String?> _firstProcessLine(AppProcess proc, Duration timeout) async {
+    final completer = Completer<String?>();
+    var stdoutClosed = false;
+    var stderrClosed = false;
+
+    void resolve(String? line) {
+      if (!completer.isCompleted) completer.complete(line);
+    }
+
+    void checkBothClosed() {
+      if (!completer.isCompleted && stdoutClosed && stderrClosed) {
+        completer.complete(null);
+      }
+    }
+
+    final stdoutSub = proc.stdout.listen(
+      (line) {
+        if (line.trim().isNotEmpty) resolve(line);
+      },
+      onDone: () {
+        stdoutClosed = true;
+        checkBothClosed();
+      },
     );
+    final stderrSub = proc.stderr.listen(
+      (line) {
+        if (line.trim().isNotEmpty) resolve(line);
+      },
+      onDone: () {
+        stderrClosed = true;
+        checkBothClosed();
+      },
+    );
+
     try {
-      final lines =
-          await proc.stdout.take(1).toList().timeout(checkTimeout);
-      return lines.isEmpty ? null : lines.first.trim();
+      return await completer.future.timeout(timeout, onTimeout: () => null);
     } finally {
-      // 读取首行后确保子进程终止（已退出时 kill 幂等），避免句柄泄漏。
-      proc.kill();
+      await stdoutSub.cancel();
+      await stderrSub.cancel();
+    }
+  }
+
+  Future<String?> _readLocalVersion() async {
+    try {
+      final engine = locator.resolve();
+      final proc = await launcher.start(
+        engine.ytDlpPath,
+        ['--version'],
+        environment: {'PYTHONIOENCODING': 'utf-8'},
+      );
+      try {
+        final line = await _firstProcessLine(proc, checkTimeout);
+        return line?.trim();
+      } finally {
+        // 读取首行后确保子进程终止（已退出时 kill 幂等），避免句柄泄漏。
+        proc.kill();
+      }
+    } catch (_) {
+      // 引擎缺失 / 启动失败 / 超时：返回 null（版本未知），不外抛。
+      return null;
     }
   }
 

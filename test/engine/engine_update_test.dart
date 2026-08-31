@@ -282,30 +282,25 @@ void main() {
   });
 
   group('subprocess timeout', () {
-    test('checkForUpdate times out instead of hanging when --version stalls',
+    test('checkForUpdate returns null instead of hanging when --version stalls',
         () async {
       final service = EngineUpdateService(
         locator: _FakeLocator(null),
         launcher: _HangingLauncher(),
         checkTimeout: const Duration(milliseconds: 100),
       );
-      await expectLater(
-        service.checkForUpdate(),
-        throwsA(isA<TimeoutException>()),
-      );
+      // 读取卡死时不再抛 TimeoutException，而是降级为 null（版本未知）以免阻塞 UI。
+      expect(await service.checkForUpdate(), isNull);
     });
 
-    test('ffmpegVersion times out instead of hanging when -version stalls',
+    test('ffmpegVersion returns null instead of hanging when -version stalls',
         () async {
       final service = EngineUpdateService(
         locator: _FakeLocator(r'C:\fake\ffmpeg.exe'),
         launcher: _HangingLauncher(),
         checkTimeout: const Duration(milliseconds: 100),
       );
-      await expectLater(
-        service.ffmpegVersion(),
-        throwsA(isA<TimeoutException>()),
-      );
+      expect(await service.ffmpegVersion(), isNull);
     });
   });
 }

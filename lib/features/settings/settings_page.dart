@@ -339,9 +339,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ],
                     ),
                     loading: () => Text('…', style: AppText.meta()),
-                    error: (_, _) => _VersionLine(
-                      label: s.aboutYtDlp,
-                      value: s.aboutVersionUnknown,
+                    error: (_, _) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _VersionLine(
+                          label: s.aboutYtDlp,
+                          value: s.aboutVersionUnknown,
+                        ),
+                        const SizedBox(height: 6),
+                        _VersionLine(
+                          label: s.ffmpegVersion,
+                          value: s.aboutVersionUnknown,
+                        ),
+                      ],
                     ),
                   ),
               const SizedBox(height: 20),

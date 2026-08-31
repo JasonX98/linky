@@ -7,9 +7,17 @@ import 'package:video_downloader/features/download/providers.dart';
 final engineVersionsProvider =
     FutureProvider<({String? ytDlp, String? ffmpeg})>((ref) async {
   final svc = ref.watch(engineServiceProvider);
-  final yt = await svc.version();
-  final ff = await svc.ffmpegVersion();
-  return (ytDlp: yt?.toString(), ffmpeg: ff);
+  // 逐组件独立读取，任一失败（缺失/超时）降级为 null，互不牵连——避免 ffmpeg
+  // 版本探测异常把整个 provider 打成 error，导致 yt-dlp 版本也被误显示为“未知”。
+  String? yt;
+  String? ff;
+  try {
+    yt = (await svc.version())?.toString();
+  } catch (_) {}
+  try {
+    ff = await svc.ffmpegVersion();
+  } catch (_) {}
+  return (ytDlp: yt, ffmpeg: ff);
 });
 
 /// 设置页"检查更新"进行中标记：为 true 时按钮禁用并显示"检查中…"。
