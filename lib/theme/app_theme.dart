@@ -119,7 +119,7 @@ class AppMeta {
 
   static const String name = 'Linky';
   static const String nameZh = '链可';
-  static const String version = '1.0.0';
+  static const String version = '1.0.1';
 }
 
 /// 青色强调色 swatch（fluent 的 accentColor 必须是 AccentColor）。
