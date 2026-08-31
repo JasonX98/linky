@@ -30,7 +30,7 @@ Future<void> runEngineUpdateCheck(
   try {
     final result = await ref
         .read(settingsProvider.notifier)
-        .checkEngineUpdates(force: true)
+        .checkEngineUpdates()
         .timeout(timeout);
     final parts = <String>[
       ..._componentFrags('yt-dlp', result.ytDlp, result.ytDlpVersion,

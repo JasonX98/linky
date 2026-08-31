@@ -81,12 +81,6 @@ class SettingsController extends Notifier<SettingsState> {
   static const int minConcurrency = 1;
   static const int maxConcurrency = 5;
 
-  /// 节流间隔：距离上次后台检查 <24h 则跳过（force 可绕过）。
-  static const Duration engineCheckInterval = Duration(hours: 24);
-
-  /// 上次引擎后台检查的时间戳（epoch 毫秒）。
-  static const String lastEngineCheckKey = 'lastEngineCheck';
-
   @override
   SettingsState build() {
     final prefs = ref.watch(sharedPrefsProvider);
@@ -157,25 +151,10 @@ class SettingsController extends Notifier<SettingsState> {
   static String _systemLang() =>
       Platform.localeName.toLowerCase().startsWith('zh') ? 'zh' : 'en';
 
-  /// 是否处于 24h 节流窗口内（非 force 时跳过检查）。
-  bool _withinThrottle() {
-    final prefs = ref.read(sharedPrefsProvider);
-    final last = prefs.getInt(lastEngineCheckKey);
-    if (last == null) return false;
-    final elapsed = DateTime.now().millisecondsSinceEpoch - last;
-    return elapsed < engineCheckInterval.inMilliseconds;
-  }
-
-  /// 单一节流门：非 force 且距上次检查 <24h 时，返回"已是最新"且不发起网络/更新。
-  /// 否则依次检查并应用 yt-dlp 与 ffmpeg（各自独立判新/应用），仅在队列空闲时才应用。
-  /// 结果按组件给出（upToDate / updated / busy / failed）。启动与按钮共用此入口。
-  Future<EngineUpdateResult> checkEngineUpdates({bool force = false}) async {
-    if (!force && _withinThrottle()) {
-      return const EngineUpdateResult(
-          ytDlp: ComponentUpdateOutcome.upToDate,
-          ffmpeg: ComponentUpdateOutcome.upToDate);
-    }
-
+  /// 依次检查并应用 yt-dlp 与 ffmpeg 更新（各自独立判新/应用），仅在队列空闲时才应用。
+  /// 结果按组件给出（upToDate / updated / busy / failed）。仅由"检查更新"按钮主动触发，
+  /// 不再做任何节流——启动后台检查已移除，按钮即用户显式的检查动作。
+  Future<EngineUpdateResult> checkEngineUpdates() async {
     final svc = ref.read(engineServiceProvider);
     final busy = ref.read(downloadQueueProvider.notifier).hasActive;
 
@@ -219,8 +198,6 @@ class SettingsController extends Notifier<SettingsState> {
       ffErr = e.toString();
     }
 
-    unawaited(ref.read(sharedPrefsProvider)
-        .setInt(lastEngineCheckKey, DateTime.now().millisecondsSinceEpoch));
     ref.invalidate(engineVersionsProvider);
     return EngineUpdateResult(
       ytDlp: yt,

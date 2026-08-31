@@ -176,24 +176,5 @@ void main() {
       expect(r.ffmpeg, ComponentUpdateOutcome.upToDate);
     });
 
-    test('within 24h of last check returns upToDate without checking',
-        () async {
-      final service = _CtrlService(ytUpdate: '2026.09.01');
-      final recent = DateTime.now().millisecondsSinceEpoch;
-      final c = await makeWith({'lastEngineCheck': recent}, false, service);
-      final r = await c.read(settingsProvider.notifier).checkEngineUpdates();
-      expect(r.ytDlp, ComponentUpdateOutcome.upToDate);
-      expect(r.ffmpeg, ComponentUpdateOutcome.upToDate);
-    });
-
-    test('force bypasses throttle and performs a check', () async {
-      final service = _CtrlService(ytUpdate: '2026.09.01');
-      final recent = DateTime.now().millisecondsSinceEpoch;
-      final c = await makeWith({'lastEngineCheck': recent}, false, service);
-      final r = await c
-          .read(settingsProvider.notifier)
-          .checkEngineUpdates(force: true);
-      expect(r.ytDlp, ComponentUpdateOutcome.updated);
-    });
   });
 }
