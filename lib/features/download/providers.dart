@@ -23,27 +23,16 @@ final ytDlpServiceProvider =
 final engineLocatorProvider =
     Provider<EngineLocator>((ref) => EngineLocator());
 
-/// 根据代理配置创建 HttpClient 的 findProxy 回调。
-/// 启用时返回固定代理地址；禁用时回退到系统环境变量代理。
-String _proxyFindProxy(Uri uri, SettingsState settings) {
-  if (!settings.proxyEnabled) {
-    return HttpClient.findProxyFromEnvironment(uri);
-  }
-  return 'PROXY ${settings.proxyHost}:${settings.proxyPort}';
-}
-
-/// 引擎更新服务：根据设置中的代理配置创建 HTTP 函数，
-/// 启用代理时所有请求走配置的 host:port，禁用时走系统环境变量代理。
-/// 测试可整体 override 本 provider 以注入假实现。
+/// 引擎更新服务：HTTP 请求走系统环境变量代理（http_proxy/https_proxy），
+/// TUN/虚拟网卡模式无需配置、直连即可。测试可整体 override 本 provider 以注入假实现。
 final engineServiceProvider = Provider<EngineUpdateService>((ref) {
   final locator = ref.watch(engineLocatorProvider);
-  final settings = ref.watch(settingsProvider);
   final timeout = const Duration(seconds: 10);
 
   Future<String> httpGet(String url) async {
     final client = HttpClient()
       ..connectionTimeout = timeout
-      ..findProxy = (uri) => _proxyFindProxy(uri, settings);
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       return await () async {
         final req = await client.getUrl(Uri.parse(url));
@@ -65,7 +54,7 @@ final engineServiceProvider = Provider<EngineUpdateService>((ref) {
   Future<void> downloader(String destPath) async {
     final client = HttpClient()
       ..connectionTimeout = timeout
-      ..findProxy = (uri) => _proxyFindProxy(uri, settings);
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       final req = await client
           .getUrl(Uri.parse(
@@ -92,7 +81,7 @@ final engineServiceProvider = Provider<EngineUpdateService>((ref) {
   Future<void> ffmpegDownloader(String zipPath) async {
     final client = HttpClient()
       ..connectionTimeout = timeout
-      ..findProxy = (uri) => _proxyFindProxy(uri, settings);
+      ..findProxy = HttpClient.findProxyFromEnvironment;
     try {
       final req = await client
           .getUrl(Uri.parse(

@@ -828,36 +828,6 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'FFmpeg 版本'**
   String get ffmpegVersion;
-
-  /// No description provided for @proxyTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'网络代理'**
-  String get proxyTitle;
-
-  /// No description provided for @proxyDesc.
-  ///
-  /// In zh, this message translates to:
-  /// **'启用后所有网络请求（引擎更新、链接解析等）将走配置的代理服务器'**
-  String get proxyDesc;
-
-  /// No description provided for @proxyHost.
-  ///
-  /// In zh, this message translates to:
-  /// **'代理地址'**
-  String get proxyHost;
-
-  /// No description provided for @proxyPort.
-  ///
-  /// In zh, this message translates to:
-  /// **'端口'**
-  String get proxyPort;
-
-  /// No description provided for @proxyEnabled.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用代理'**
-  String get proxyEnabled;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

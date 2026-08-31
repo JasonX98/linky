@@ -42,9 +42,6 @@ class SettingsState {
     this.defaultPreset = QualityPreset.best,
     required this.language,
     this.notifyOnComplete = true,
-    this.proxyEnabled = false,
-    this.proxyHost = '127.0.0.1',
-    this.proxyPort = 7897,
   });
 
   final String? downloadDir;
@@ -59,15 +56,6 @@ class SettingsState {
   /// 控件与存储先落地，避免后续接通知时再改状态结构。
   final bool notifyOnComplete;
 
-  /// 是否启用自定义代理（替代系统环境变量代理）。
-  final bool proxyEnabled;
-
-  /// 代理服务器地址（默认 127.0.0.1，适配 Clash Verge 等本地代理工具）。
-  final String proxyHost;
-
-  /// 代理端口（默认 7897，Clash Verge 系统代理默认端口）。
-  final int proxyPort;
-
   SettingsState copyWith({
     String? downloadDir,
     bool clearDownloadDir = false,
@@ -77,9 +65,6 @@ class SettingsState {
     QualityPreset? defaultPreset,
     String? language,
     bool? notifyOnComplete,
-    bool? proxyEnabled,
-    String? proxyHost,
-    int? proxyPort,
   }) =>
       SettingsState(
         downloadDir:
@@ -89,9 +74,6 @@ class SettingsState {
         defaultPreset: defaultPreset ?? this.defaultPreset,
         language: language ?? this.language,
         notifyOnComplete: notifyOnComplete ?? this.notifyOnComplete,
-        proxyEnabled: proxyEnabled ?? this.proxyEnabled,
-        proxyHost: proxyHost ?? this.proxyHost,
-        proxyPort: proxyPort ?? this.proxyPort,
       );
 }
 
@@ -125,9 +107,6 @@ class SettingsController extends Notifier<SettingsState> {
           : QualityPreset.best,
       language: prefs.getString('language') ?? _systemLang(),
       notifyOnComplete: prefs.getBool('notifyOnComplete') ?? true,
-      proxyEnabled: prefs.getBool('proxyEnabled') ?? false,
-      proxyHost: prefs.getString('proxyHost') ?? '127.0.0.1',
-      proxyPort: prefs.getInt('proxyPort') ?? 7897,
     );
   }
 
@@ -173,23 +152,6 @@ class SettingsController extends Notifier<SettingsState> {
     state = state.copyWith(notifyOnComplete: value);
     unawaited(
         ref.read(sharedPrefsProvider).setBool('notifyOnComplete', value));
-  }
-
-  void setProxyEnabled(bool value) {
-    state = state.copyWith(proxyEnabled: value);
-    unawaited(ref.read(sharedPrefsProvider).setBool('proxyEnabled', value));
-  }
-
-  void setProxyHost(String host) {
-    state = state.copyWith(proxyHost: host);
-    unawaited(ref.read(sharedPrefsProvider).setString('proxyHost', host));
-  }
-
-  void setProxyPort(int port) {
-    final clamped = port.clamp(1, 65535);
-    state = state.copyWith(proxyPort: clamped);
-    unawaited(
-        ref.read(sharedPrefsProvider).setInt('proxyPort', clamped));
   }
 
   static String _systemLang() =>

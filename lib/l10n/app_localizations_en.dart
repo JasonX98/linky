@@ -423,20 +423,4 @@ class SEn extends S {
 
   @override
   String get ffmpegVersion => 'FFmpeg version';
-
-  @override
-  String get proxyTitle => 'Proxy';
-
-  @override
-  String get proxyDesc =>
-      'When enabled, all network requests (engine updates, link parsing, etc.) will go through the configured proxy server';
-
-  @override
-  String get proxyHost => 'Proxy address';
-
-  @override
-  String get proxyPort => 'Port';
-
-  @override
-  String get proxyEnabled => 'Use proxy';
 }
