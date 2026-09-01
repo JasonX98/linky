@@ -198,6 +198,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ],
                 ),
               ),
+              // 与「默认画质」一致：标题/说明靠左，三个 chip 靠右同一行。
+              // 注意 _SettingRow 的弹性行会给非弹性子控件无限宽度，chip 若过宽
+              // 不会换行；故英文 chip 文案取短（Tray 等），确保窄栏不横向溢出。
+              _SettingRow(
+                title: s.settingsCloseBehavior,
+                subtitle: s.settingsCloseBehaviorDesc,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final b in CloseBehavior.values)
+                      QualityChip(
+                        label: _closeBehaviorLabel(context, b),
+                        selected: b == settings.closeBehavior,
+                        onTap: () => ref
+                            .read(settingsProvider.notifier)
+                            .setCloseBehavior(b),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -569,6 +590,16 @@ class _SectionTabState extends State<_SectionTab> {
       ),
     );
   }
+}
+
+/// 关闭行为三个选项的本地化文案。
+String _closeBehaviorLabel(BuildContext context, CloseBehavior b) {
+  final s = S.of(context);
+  return switch (b) {
+    CloseBehavior.ask => s.closeBehaviorAsk,
+    CloseBehavior.exit => s.closeBehaviorExit,
+    CloseBehavior.tray => s.closeBehaviorTray,
+  };
 }
 
 /// 版本行：label + 值。

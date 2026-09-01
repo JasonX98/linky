@@ -67,6 +67,7 @@ void main() {
     expect(s.defaultPreset, QualityPreset.best);
     expect(s.language, isIn(['zh', 'en']));
     expect(s.downloadDir, isNull);
+    expect(s.closeBehavior, CloseBehavior.ask);
   });
 
   test('setters persist to prefs and update state', () async {
@@ -87,6 +88,23 @@ void main() {
     expect(prefs.getInt('defaultPreset'), QualityPreset.p720.index);
     expect(prefs.getString('downloadDir'), r'D:\Videos');
     expect(prefs.getString('language'), 'en');
+  });
+
+  test('closeBehavior defaults to ask, persists setter, loads persisted with validation',
+      () async {
+    // 默认未决策：ask
+    final (c, prefs) = await make({});
+    expect(c.read(settingsProvider).closeBehavior, CloseBehavior.ask);
+
+    // setter 持久化
+    c.read(settingsProvider.notifier).setCloseBehavior(CloseBehavior.tray);
+    expect(c.read(settingsProvider).closeBehavior, CloseBehavior.tray);
+    await Future<void>.delayed(Duration.zero);
+    expect(prefs.getInt('closeBehavior'), CloseBehavior.tray.index);
+
+    // 越界值回落 ask
+    final (c2, _) = await make({'closeBehavior': 99});
+    expect(c2.read(settingsProvider).closeBehavior, CloseBehavior.ask);
   });
 
   test('setCookieFile persists and clears', () async {

@@ -140,5 +140,19 @@
   "cookieEmpty": "尚未添加 Cookie 文件",
   "aboutVersionLine": "版本 {version} · Windows 桌面版",
   "@aboutVersionLine": { "placeholders": { "version": { "type": "String" } } },
-  "ffmpegVersion": "FFmpeg 版本"
+  "ffmpegVersion": "FFmpeg 版本",
+  "settingsCloseBehavior": "点击关闭按钮时",
+  "settingsCloseBehaviorDesc": "点击右上角关闭按钮后的行为，首次会弹出选择",
+  "closeBehaviorAsk": "每次询问",
+  "closeBehaviorExit": "直接退出",
+  "closeBehaviorTray": "退出到托盘",
+  "closeDialogTitle": "关闭 Linky",
+  "closeDialogMessage": "点击「关闭」后，你希望应用如何运行？",
+  "closeExit": "直接退出",
+  "closeExitDesc": "立即关闭应用，不再在后台运行",
+  "closeTray": "退出到系统托盘",
+  "closeTrayDesc": "隐藏窗口，继续在后台运行",
+  "trayToolTip": "Linky 链可",
+  "trayMenuShow": "打开主界面",
+  "trayMenuQuit": "退出应用"
 }

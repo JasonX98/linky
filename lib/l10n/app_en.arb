@@ -133,5 +133,19 @@
   "cookieEmpty": "No cookie file added",
   "aboutVersionLine": "Version {version} · Windows desktop",
   "@aboutVersionLine": { "placeholders": { "version": { "type": "String" } } },
-  "ffmpegVersion": "FFmpeg version"
+  "ffmpegVersion": "FFmpeg version",
+  "settingsCloseBehavior": "When closing the window",
+  "settingsCloseBehaviorDesc": "What happens when you close the window; first close asks",
+  "closeBehaviorAsk": "Ask each time",
+  "closeBehaviorExit": "Exit app",
+  "closeBehaviorTray": "Tray",
+  "closeDialogTitle": "Close Linky",
+  "closeDialogMessage": "After closing, how should the app behave?",
+  "closeExit": "Exit app",
+  "closeExitDesc": "Quit immediately and stop running in the background",
+  "closeTray": "Minimize to system tray",
+  "closeTrayDesc": "Hide the window and keep running in the background",
+  "trayToolTip": "Linky",
+  "trayMenuShow": "Open main window",
+  "trayMenuQuit": "Quit app"
 }

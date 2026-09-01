@@ -828,6 +828,90 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'FFmpeg 版本'**
   String get ffmpegVersion;
+
+  /// No description provided for @settingsCloseBehavior.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击关闭按钮时'**
+  String get settingsCloseBehavior;
+
+  /// No description provided for @settingsCloseBehaviorDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击右上角关闭按钮后的行为，首次会弹出选择'**
+  String get settingsCloseBehaviorDesc;
+
+  /// No description provided for @closeBehaviorAsk.
+  ///
+  /// In zh, this message translates to:
+  /// **'每次询问'**
+  String get closeBehaviorAsk;
+
+  /// No description provided for @closeBehaviorExit.
+  ///
+  /// In zh, this message translates to:
+  /// **'直接退出'**
+  String get closeBehaviorExit;
+
+  /// No description provided for @closeBehaviorTray.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出到托盘'**
+  String get closeBehaviorTray;
+
+  /// No description provided for @closeDialogTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭 Linky'**
+  String get closeDialogTitle;
+
+  /// No description provided for @closeDialogMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击「关闭」后，你希望应用如何运行？'**
+  String get closeDialogMessage;
+
+  /// No description provided for @closeExit.
+  ///
+  /// In zh, this message translates to:
+  /// **'直接退出'**
+  String get closeExit;
+
+  /// No description provided for @closeExitDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即关闭应用，不再在后台运行'**
+  String get closeExitDesc;
+
+  /// No description provided for @closeTray.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出到系统托盘'**
+  String get closeTray;
+
+  /// No description provided for @closeTrayDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏窗口，继续在后台运行'**
+  String get closeTrayDesc;
+
+  /// No description provided for @trayToolTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'Linky 链可'**
+  String get trayToolTip;
+
+  /// No description provided for @trayMenuShow.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开主界面'**
+  String get trayMenuShow;
+
+  /// No description provided for @trayMenuQuit.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出应用'**
+  String get trayMenuQuit;
 }
 
 class _SDelegate extends LocalizationsDelegate<S> {

@@ -423,4 +423,49 @@ class SEn extends S {
 
   @override
   String get ffmpegVersion => 'FFmpeg version';
+
+  @override
+  String get settingsCloseBehavior => 'When closing the window';
+
+  @override
+  String get settingsCloseBehaviorDesc =>
+      'What happens when you close the window; first close asks';
+
+  @override
+  String get closeBehaviorAsk => 'Ask each time';
+
+  @override
+  String get closeBehaviorExit => 'Exit app';
+
+  @override
+  String get closeBehaviorTray => 'Tray';
+
+  @override
+  String get closeDialogTitle => 'Close Linky';
+
+  @override
+  String get closeDialogMessage => 'After closing, how should the app behave?';
+
+  @override
+  String get closeExit => 'Exit app';
+
+  @override
+  String get closeExitDesc =>
+      'Quit immediately and stop running in the background';
+
+  @override
+  String get closeTray => 'Minimize to system tray';
+
+  @override
+  String get closeTrayDesc =>
+      'Hide the window and keep running in the background';
+
+  @override
+  String get trayToolTip => 'Linky';
+
+  @override
+  String get trayMenuShow => 'Open main window';
+
+  @override
+  String get trayMenuQuit => 'Quit app';
 }

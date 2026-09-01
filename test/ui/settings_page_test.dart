@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_downloader/core/providers.dart';
 import 'package:video_downloader/features/download/providers.dart';
 import 'package:video_downloader/features/settings/providers.dart';
+import 'package:video_downloader/features/settings/settings_controller.dart';
 import 'package:video_downloader/features/settings/settings_page.dart';
 import 'package:video_downloader/engine/engine_update.dart';
 import 'package:video_downloader/engine/models.dart';
@@ -341,5 +342,21 @@ void main() {
     await openSection(tester, 'section_download_tab');
     expect(find.byKey(const Key('cookie_file_button')), findsNothing);
     expect(find.byKey(const Key('clear_cookie_button')), findsNothing);
+  });
+
+  testWidgets('close behavior chips render and persist selection',
+      (tester) async {
+    await tester.pumpWidget(host());
+    await tester.pumpAndSettle();
+
+    // 常规分区：关闭行为三个 chip
+    expect(find.text('点击关闭按钮时'), findsOneWidget);
+    expect(find.text('每次询问'), findsOneWidget);
+    expect(find.text('直接退出'), findsOneWidget);
+    expect(find.text('退出到托盘'), findsOneWidget);
+
+    await tester.tap(find.text('退出到托盘'));
+    await tester.pumpAndSettle();
+    expect(prefs.getInt('closeBehavior'), CloseBehavior.tray.index);
   });
 }

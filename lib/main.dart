@@ -11,6 +11,7 @@ import 'package:video_downloader/core/logger.dart';
 import 'package:video_downloader/core/providers.dart';
 import 'package:video_downloader/features/download/providers.dart';
 import 'package:video_downloader/features/shell/app_shell.dart';
+import 'package:video_downloader/features/shell/window_close_gate.dart';
 import 'package:video_downloader/l10n/app_localizations.dart';
 import 'package:video_downloader/theme/app_theme.dart';
 
@@ -67,7 +68,7 @@ class App extends ConsumerWidget {
       locale: Locale(settings.language),
       localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales,
-      home: AppShell(),
+      home: const WindowCloseGate(child: AppShell()),
     );
   }
 }

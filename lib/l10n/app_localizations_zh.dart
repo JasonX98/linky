@@ -413,4 +413,46 @@ class SZh extends S {
 
   @override
   String get ffmpegVersion => 'FFmpeg 版本';
+
+  @override
+  String get settingsCloseBehavior => '点击关闭按钮时';
+
+  @override
+  String get settingsCloseBehaviorDesc => '点击右上角关闭按钮后的行为，首次会弹出选择';
+
+  @override
+  String get closeBehaviorAsk => '每次询问';
+
+  @override
+  String get closeBehaviorExit => '直接退出';
+
+  @override
+  String get closeBehaviorTray => '退出到托盘';
+
+  @override
+  String get closeDialogTitle => '关闭 Linky';
+
+  @override
+  String get closeDialogMessage => '点击「关闭」后，你希望应用如何运行？';
+
+  @override
+  String get closeExit => '直接退出';
+
+  @override
+  String get closeExitDesc => '立即关闭应用，不再在后台运行';
+
+  @override
+  String get closeTray => '退出到系统托盘';
+
+  @override
+  String get closeTrayDesc => '隐藏窗口，继续在后台运行';
+
+  @override
+  String get trayToolTip => 'Linky 链可';
+
+  @override
+  String get trayMenuShow => '打开主界面';
+
+  @override
+  String get trayMenuQuit => '退出应用';
 }

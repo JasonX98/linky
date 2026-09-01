@@ -11,6 +11,15 @@ import 'package:video_downloader/features/settings/providers.dart';
 /// 单个组件（yt-dlp / ffmpeg）的更新结果。
 enum ComponentUpdateOutcome { upToDate, updated, busy, failed }
 
+/// 点击右上角关闭按钮时的行为。
+///
+/// - [ask]（默认）：尚未决策，每次点击都弹出询问对话框；
+/// - [exit]：直接退出应用；
+/// - [tray]：隐藏到系统托盘，后台继续运行。
+/// 首次在对话框里做出选择后会持久化为 [exit] 或 [tray]，之后点击关闭按钮
+/// 直接按该行为执行，不再询问。
+enum CloseBehavior { ask, exit, tray }
+
 /// "检查更新"的结果：按组件分别给出结果，UI 据此分组件选本地化文案。
 class EngineUpdateResult {
   const EngineUpdateResult({
@@ -42,6 +51,7 @@ class SettingsState {
     this.defaultPreset = QualityPreset.best,
     required this.language,
     this.notifyOnComplete = true,
+    this.closeBehavior = CloseBehavior.ask,
   });
 
   final String? downloadDir;
@@ -56,6 +66,10 @@ class SettingsState {
   /// 控件与存储先落地，避免后续接通知时再改状态结构。
   final bool notifyOnComplete;
 
+  /// 点击右上角关闭按钮时的行为（见 [CloseBehavior]）。首次在对话
+  /// 框中选择后持久化，后续点击直接按该行为执行。
+  final CloseBehavior closeBehavior;
+
   SettingsState copyWith({
     String? downloadDir,
     bool clearDownloadDir = false,
@@ -65,6 +79,7 @@ class SettingsState {
     QualityPreset? defaultPreset,
     String? language,
     bool? notifyOnComplete,
+    CloseBehavior? closeBehavior,
   }) =>
       SettingsState(
         downloadDir:
@@ -74,6 +89,7 @@ class SettingsState {
         defaultPreset: defaultPreset ?? this.defaultPreset,
         language: language ?? this.language,
         notifyOnComplete: notifyOnComplete ?? this.notifyOnComplete,
+        closeBehavior: closeBehavior ?? this.closeBehavior,
       );
 }
 
@@ -86,6 +102,7 @@ class SettingsController extends Notifier<SettingsState> {
     final prefs = ref.watch(sharedPrefsProvider);
     final storedConcurrency = prefs.getInt('concurrency');
     final storedPreset = prefs.getInt('defaultPreset');
+    final storedClose = prefs.getInt('closeBehavior');
     return SettingsState(
       downloadDir: prefs.getString('downloadDir'),
       cookieFile: prefs.getString('cookieFile'),
@@ -101,6 +118,11 @@ class SettingsController extends Notifier<SettingsState> {
           : QualityPreset.best,
       language: prefs.getString('language') ?? _systemLang(),
       notifyOnComplete: prefs.getBool('notifyOnComplete') ?? true,
+      closeBehavior: storedClose != null &&
+              storedClose >= 0 &&
+              storedClose < CloseBehavior.values.length
+          ? CloseBehavior.values[storedClose]
+          : CloseBehavior.ask,
     );
   }
 
@@ -146,6 +168,13 @@ class SettingsController extends Notifier<SettingsState> {
     state = state.copyWith(notifyOnComplete: value);
     unawaited(
         ref.read(sharedPrefsProvider).setBool('notifyOnComplete', value));
+  }
+
+  /// 设置点击右上角关闭按钮时的行为（见 [CloseBehavior]）。
+  void setCloseBehavior(CloseBehavior value) {
+    state = state.copyWith(closeBehavior: value);
+    unawaited(
+        ref.read(sharedPrefsProvider).setInt('closeBehavior', value.index));
   }
 
   static String _systemLang() =>
