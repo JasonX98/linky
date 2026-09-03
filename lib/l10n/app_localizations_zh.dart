@@ -210,7 +210,7 @@ class SZh extends S {
   String get licensesNote => '基于 yt-dlp（Unlicense）与 FFmpeg（LGPL/GPL）构建';
 
   @override
-  String get settingsCheckUpdate => '检查更新';
+  String get settingsCheckUpdate => '检查引擎更新';
 
   @override
   String get updateChecking => '检查中…';
@@ -235,6 +235,37 @@ class SZh extends S {
 
   @override
   String get updateTimeout => '检查更新超时：网络响应过慢，请检查网络后重试';
+
+  @override
+  String get appUpdateTitle => '应用更新';
+
+  @override
+  String get appUpdateTitleDesc => '检测 GitHub 上是否有应用新版本';
+
+  @override
+  String get settingsCheckAppUpdate => '检查应用更新';
+
+  @override
+  String get appUpdateChecking => '正在检查应用更新…';
+
+  @override
+  String get appUpdateUpToDate => '应用已是最新版本';
+
+  @override
+  String appUpdateAvailable(String latest, String current) {
+    return '发现新版本 $latest（当前 $current）';
+  }
+
+  @override
+  String get appUpdateGoUpdate => '前往更新';
+
+  @override
+  String appUpdateFailed(String detail) {
+    return '应用更新检查失败：$detail';
+  }
+
+  @override
+  String get appUpdateTimeout => '检查应用更新超时：网络响应过慢，请检查网络后重试';
 
   @override
   String get versionLabel => '版本';

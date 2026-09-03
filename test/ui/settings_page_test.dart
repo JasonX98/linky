@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_downloader/core/providers.dart';
 import 'package:video_downloader/features/download/providers.dart';
+import 'package:video_downloader/features/settings/app_update.dart';
 import 'package:video_downloader/features/settings/providers.dart';
 import 'package:video_downloader/features/settings/settings_controller.dart';
 import 'package:video_downloader/features/settings/settings_page.dart';
@@ -93,6 +94,7 @@ void main() {
   Widget hostWith({
     required EngineUpdateService engineService,
     bool queueActive = false,
+    AppUpdateService? appService,
   }) =>
       ProviderScope(
         overrides: [
@@ -101,6 +103,8 @@ void main() {
               (ref) async => (ytDlp: '2026.08.19', ffmpeg: '7.0.0')),
           engineServiceProvider.overrideWithValue(engineService),
           downloadQueueProvider.overrideWith(() => _FakeQueue(queueActive)),
+          if (appService != null)
+            appUpdateServiceProvider.overrideWithValue(appService),
         ],
         child: const _LocaleHost(),
       );
@@ -333,6 +337,62 @@ void main() {
     final sEn = S.of(tester.element(find.byType(SizedBox)));
     expect(sEn.updateTimeout, isNotEmpty);
     expect(sEn.updateTimeout, contains('timed out'));
+  });
+
+  testWidgets('app update shows up-to-date status', (tester) async {
+    final service = AppUpdateService(
+      currentVersion: '1.0.3',
+      fetchLatest: () async =>
+          const AppRelease(version: '1.0.3', releaseUrl: 'https://x/r'),
+    );
+    await tester.pumpWidget(
+        hostWith(engineService: _PageService(), appService: service));
+    await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
+
+    await tester.tap(find.byKey(const Key('app_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('应用已是最新版本'), findsOneWidget);
+  });
+
+  testWidgets('app update shows available and opens release page',
+      (tester) async {
+    final opened = <String>[];
+    final service = AppUpdateService(
+      currentVersion: '1.0.3',
+      fetchLatest: () async =>
+          const AppRelease(version: '1.0.4', releaseUrl: 'https://x/r'),
+      openUrl: (u) async => opened.add(u),
+    );
+    await tester.pumpWidget(
+        hostWith(engineService: _PageService(), appService: service));
+    await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
+
+    await tester.tap(find.byKey(const Key('app_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('发现新版本 1.0.4（当前 1.0.3）'), findsOneWidget);
+    await tester.tap(find.text('前往更新'));
+    await tester.pumpAndSettle();
+    expect(opened, ['https://x/r']);
+  });
+
+  testWidgets('app update shows failure on error', (tester) async {
+    final service = AppUpdateService(
+      currentVersion: '1.0.3',
+      fetchLatest: () async => throw Exception('boom'),
+    );
+    await tester.pumpWidget(
+        hostWith(engineService: _PageService(), appService: service));
+    await tester.pumpAndSettle();
+    await openSection(tester, 'section_about_tab');
+
+    await tester.tap(find.byKey(const Key('app_update_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('应用更新检查失败'), findsOneWidget);
   });
 
   testWidgets('cookie selector no longer lives in settings', (tester) async {

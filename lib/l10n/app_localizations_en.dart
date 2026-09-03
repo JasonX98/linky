@@ -215,7 +215,7 @@ class SEn extends S {
       'Built with yt-dlp (Unlicense) and FFmpeg (LGPL/GPL)';
 
   @override
-  String get settingsCheckUpdate => 'Check for Updates';
+  String get settingsCheckUpdate => 'Check Engine Update';
 
   @override
   String get updateChecking => 'Checking…';
@@ -241,6 +241,38 @@ class SEn extends S {
   @override
   String get updateTimeout =>
       'Update check timed out: network is too slow, please check your connection and try again';
+
+  @override
+  String get appUpdateTitle => 'App Update';
+
+  @override
+  String get appUpdateTitleDesc => 'Check GitHub for a new app version';
+
+  @override
+  String get settingsCheckAppUpdate => 'Check App Update';
+
+  @override
+  String get appUpdateChecking => 'Checking for app updates…';
+
+  @override
+  String get appUpdateUpToDate => 'App is up to date';
+
+  @override
+  String appUpdateAvailable(String latest, String current) {
+    return 'New version $latest available (current $current)';
+  }
+
+  @override
+  String get appUpdateGoUpdate => 'Go to update';
+
+  @override
+  String appUpdateFailed(String detail) {
+    return 'App update check failed: $detail';
+  }
+
+  @override
+  String get appUpdateTimeout =>
+      'App update check timed out: network is too slow, please check and retry';
 
   @override
   String get versionLabel => 'Version';

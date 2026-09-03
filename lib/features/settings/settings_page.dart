@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_downloader/engine/models.dart';
 import 'package:video_downloader/features/download/preset_label.dart';
 import 'package:video_downloader/features/download/providers.dart';
+import 'package:video_downloader/features/settings/app_update_action.dart';
 import 'package:video_downloader/features/settings/engine_update_action.dart';
 import 'package:video_downloader/features/settings/providers.dart';
 import 'package:video_downloader/features/settings/settings_controller.dart';
@@ -321,6 +322,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              _SettingRow(
+                title: s.appUpdateTitle,
+                subtitle: s.appUpdateTitleDesc,
+                child: const AppUpdateButton(key: Key('app_update_button')),
+              ),
+              const SizedBox(height: 4),
+              const AppUpdateStatusView(),
               const SizedBox(height: 28),
               Divider(
                 style: DividerThemeData(

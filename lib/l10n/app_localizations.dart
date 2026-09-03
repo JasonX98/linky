@@ -466,7 +466,7 @@ abstract class S {
   /// No description provided for @settingsCheckUpdate.
   ///
   /// In zh, this message translates to:
-  /// **'检查更新'**
+  /// **'检查引擎更新'**
   String get settingsCheckUpdate;
 
   /// No description provided for @updateChecking.
@@ -504,6 +504,60 @@ abstract class S {
   /// In zh, this message translates to:
   /// **'检查更新超时：网络响应过慢，请检查网络后重试'**
   String get updateTimeout;
+
+  /// No description provided for @appUpdateTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用更新'**
+  String get appUpdateTitle;
+
+  /// No description provided for @appUpdateTitleDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测 GitHub 上是否有应用新版本'**
+  String get appUpdateTitleDesc;
+
+  /// No description provided for @settingsCheckAppUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查应用更新'**
+  String get settingsCheckAppUpdate;
+
+  /// No description provided for @appUpdateChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检查应用更新…'**
+  String get appUpdateChecking;
+
+  /// No description provided for @appUpdateUpToDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用已是最新版本'**
+  String get appUpdateUpToDate;
+
+  /// No description provided for @appUpdateAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本 {latest}（当前 {current}）'**
+  String appUpdateAvailable(String latest, String current);
+
+  /// No description provided for @appUpdateGoUpdate.
+  ///
+  /// In zh, this message translates to:
+  /// **'前往更新'**
+  String get appUpdateGoUpdate;
+
+  /// No description provided for @appUpdateFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用更新检查失败：{detail}'**
+  String appUpdateFailed(String detail);
+
+  /// No description provided for @appUpdateTimeout.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查应用更新超时：网络响应过慢，请检查网络后重试'**
+  String get appUpdateTimeout;
 
   /// No description provided for @versionLabel.
   ///
