@@ -106,6 +106,20 @@
 flutter test
 ```
 
+### 发布规范（GitHub Release）
+
+应用自更新通过 GitHub Release 检测新版本，发布时请遵守统一命名：
+
+| 项 | 规范 | 示例 |
+| --- | --- | --- |
+| Release tag | `v<semver>` | `v1.0.4` |
+| Release 标题 | `Linky v<semver>` | `Linky v1.0.4` |
+| zip 资产名 | `Linky-v<semver>-windows-x64.zip` | `Linky-v1.0.4-windows-x64.zip` |
+| 版本号来源 | `pubspec.yaml` 的 `version:`（去 `+build` 后缀），与 `AppMeta.version` 一致 | `1.0.4` |
+| 更新日志 | `release/release_notes_v<semver>.md` + `release/payload.json` | 沿用现有 |
+
+`<semver>` 取 `pubspec.yaml` 的 `version: <x.y.z>+<build>` 的 `<x.y.z>`。切勿再造 `-win64.zip` 等变体命名（v1.0.2 曾用 `Linky-1.0.2-win64.zip`，已不再采纳）。
+
 ### MSIX 打包
 
 由 dev 依赖 `msix` 提供，配置在 `pubspec.yaml` 的 `msix_config:` 中。生成安装包：
